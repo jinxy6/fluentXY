@@ -1353,13 +1353,26 @@ function Creator.AddThemeObject(Object, Properties)
 	}
 
 	Creator.Registry[Object] = Data
-	Creator.UpdateTheme()
+	
+	for Property, ColorIdx in next, Data.Properties do
+		local themeValue = Creator.GetThemeProperty(ColorIdx)
+		if themeValue then
+			Object[Property] = themeValue
+		end
+	end
+	
 	return Object
 end
 
 function Creator.OverrideTag(Object, Properties)
 	Creator.Registry[Object].Properties = Properties
-	Creator.UpdateTheme()
+	
+	for Property, ColorIdx in next, Properties do
+		local themeValue = Creator.GetThemeProperty(ColorIdx)
+		if themeValue then
+			Object[Property] = themeValue
+		end
+	end
 end
 
 function Creator.GetThemeProperty(Property)

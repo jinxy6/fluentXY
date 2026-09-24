@@ -12,36 +12,7 @@ https://fluent-pl.us
 
 ]]
 
--- [[ INTERNAL ANTICHEAT BYPASS: STACK & ENVIRONMENT HIDER ]] --
-local _setstackhidden = setstackhidden or setthreadidentity or function() end
-
-local function HideStack(callback)
-    if type(callback) ~= "function" then return callback end
-    return function(...)
-        pcall(function() _setstackhidden(1, true) end)
-        return callback(...)
-    end
-end
-
-local _task = getgenv().task or task
-if setreadonly then pcall(function() setreadonly(_task, false) end) end
-local original_task_spawn, original_task_defer, original_task_delay = _task.spawn, _task.defer, _task.delay
-_task.spawn = function(f, ...) return original_task_spawn(HideStack(f), ...) end
-_task.defer = function(f, ...) return original_task_defer(HideStack(f), ...) end
-_task.delay = function(t, f, ...) return original_task_delay(t, HideStack(f), ...) end
-if setreadonly then pcall(function() setreadonly(_task, true) end) end
-
-local _coroutine = getgenv().coroutine or coroutine
-if setreadonly then pcall(function() setreadonly(_coroutine, false) end) end
-local original_coroutine_wrap, original_coroutine_create = _coroutine.wrap, _coroutine.create
-_coroutine.wrap = function(f) return original_coroutine_wrap(HideStack(f)) end
-_coroutine.create = function(f) return original_coroutine_create(HideStack(f)) end
-if setreadonly then pcall(function() setreadonly(_coroutine, true) end) end
-
-local original_spawn, original_delay = getgenv().spawn, getgenv().delay
-if original_spawn then getgenv().spawn = function(f) return original_spawn(HideStack(f)) end end
-if original_delay then getgenv().delay = function(t, f) return original_delay(t, HideStack(f)) end end
--- [[ END INTERNAL BYPASS ]] --
+-- Global thread hooking removed because it breaks CoreGui / UI Library capabilities.
 
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")

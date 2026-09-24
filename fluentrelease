@@ -1,3 +1,10 @@
+--[[
+
+A modified version of Fluent
+
+
+]]
+
 -- [[ INTERNAL ANTICHEAT BYPASS: STACK & ENVIRONMENT HIDER ]] --
 local _setstackhidden = setstackhidden or setthreadidentity or function() end
 pcall(function() _setstackhidden(1, true) end)
@@ -5997,15 +6004,19 @@ ElementsTable.Dropdown = (function()
 			local Values = Dropdown.Values
 			local Str = ""
 
+			local function displayValue(val)
+				return (Dropdown.Displayer and Dropdown.Displayer(val)) or (type(val) == "table" and tostring(val.Name or val.Title or tostring(val))) or tostring(val)
+			end
+
 			if Config.Multi then
 				for Idx, Value in next, Values do
 					if Dropdown.Value[Value] then
-						Str = Str .. Value .. ", "
+						Str = Str .. displayValue(Value) .. ", "
 					end
 				end
 				Str = Str:sub(1, #Str - 2)
 			else
-				Str = Dropdown.Value or ""
+				Str = Dropdown.Value and displayValue(Dropdown.Value) or ""
 			end
 
 			DropdownDisplay.Text = (Str == "" and "--" or Str)
@@ -6067,7 +6078,7 @@ ElementsTable.Dropdown = (function()
 
 				local ButtonLabel = New("TextLabel", {
 					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
-					Text = Value,
+					Text = (Dropdown.Displayer and Dropdown.Displayer(Value)) or (type(Value) == "table" and tostring(Value.Name or Value.Title or tostring(Value))) or tostring(Value),
 					TextColor3 = Color3.fromRGB(200, 200, 200),
 					TextSize = 13,
 					TextXAlignment = Enum.TextXAlignment.Left,

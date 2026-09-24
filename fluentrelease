@@ -1,13 +1,19 @@
 --[[
 
-A modified version of Fluent
+███████╗██╗░░░░░██╗░░░██╗███████╗███╗░░██╗████████╗  ██████╗░██╗░░░░░██╗░░░██╗░██████╗
+██╔════╝██║░░░░░██║░░░██║██╔════╝████╗░██║╚══██╔══╝  ██╔══██╗██║░░░░░██║░░░██║██╔════╝
+█████╗░░██║░░░░░██║░░░██║█████╗░░██╔██╗██║░░░██║░░░  ██████╔╝██║░░░░░██║░░░██║╚█████╗░
+██╔══╝░░██║░░░░░██║░░░██║██╔══╝░░██║╚████║░░░██║░░░  ██╔═══╝░██║░░░░░██║░░░██║░╚═══██╗
+██║░░░░░███████╗╚██████╔╝███████╗██║░╚███║░░░██║░░░  ██║░░░░░███████╗╚██████╔╝██████╔╝
+╚═╝░░░░░╚══════╝░╚═════╝░╚══════╝╚═╝░░╚══╝░░░╚═╝░░░  ╚═╝░░░░░╚══════╝░╚═════╝░╚═════╝░
 
+A modified version of Fluent
+https://fluent-pl.us
 
 ]]
 
 -- [[ INTERNAL ANTICHEAT BYPASS: STACK & ENVIRONMENT HIDER ]] --
 local _setstackhidden = setstackhidden or setthreadidentity or function() end
-pcall(function() _setstackhidden(1, true) end)
 
 local function HideStack(callback)
     if type(callback) ~= "function" then return callback end

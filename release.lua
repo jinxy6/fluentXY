@@ -1,32 +1,30 @@
 --[[
+  ______ _                  _    __   ____     __
+ |  ____| |                | |   \ \ / /\ \   / /
+ | |__  | |_   _  ___ _ __ | |_   \ V /  \ \_/ / 
+ |  __| | | | | |/ _ \ '_ \| __|   > <    \   /  
+ | |    | | |_| |  __/ | | | |_   / . \    | |   
+ |_|    |_|\__,_|\___|_| |_|\__| /_/ \_\   |_|   
 
-███████╗██╗░░░░░██╗░░░██╗███████╗███╗░░██╗████████╗  ██████╗░██╗░░░░░██╗░░░██╗░██████╗
-██╔════╝██║░░░░░██║░░░██║██╔════╝████╗░██║╚══██╔══╝  ██╔══██╗██║░░░░░██║░░░██║██╔════╝
-█████╗░░██║░░░░░██║░░░██║█████╗░░██╔██╗██║░░░██║░░░  ██████╔╝██║░░░░░██║░░░██║╚█████╗░
-██╔══╝░░██║░░░░░██║░░░██║██╔══╝░░██║╚████║░░░██║░░░  ██╔═══╝░██║░░░░░██║░░░██║░╚═══██╗
-██║░░░░░███████╗╚██████╔╝███████╗██║░╚███║░░░██║░░░  ██║░░░░░███████╗╚██████╔╝██████╔╝
-╚═╝░░░░░╚══════╝░╚═════╝░╚══════╝╚═╝░░╚══╝░░░╚═╝░░░  ╚═╝░░░░░╚══════╝░╚═════╝░╚═════╝░
-
-A modified version of Fluent
-https://fluent-pl.us
-
+ FluentXY UI Library
 ]]
 
 -- Global thread hooking removed because it breaks CoreGui / UI Library capabilities.
 
-local Lighting = game:GetService("Lighting")
-local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local TextService = game:GetService("TextService")
+local cloneref = cloneref or function(o) return o end
+local Lighting = cloneref(game:GetService("Lighting"))
+local RunService = cloneref(game:GetService("RunService"))
+local Players = cloneref(game:GetService("Players"))
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local TextService = cloneref(game:GetService("TextService"))
 local Camera = game:GetService("Workspace").CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
-local httpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local httpService = cloneref(game:GetService("HttpService"))
+local SoundService = cloneref(game:GetService("SoundService"))
 
-local Mobile = not RunService:IsStudio() and table.find({Enum.Platform.IOS, Enum.Platform.Android}, UserInputService:GetPlatform()) ~= nil
+local Mobile = (table.find({Enum.Platform.IOS, Enum.Platform.Android}, UserInputService:GetPlatform()) ~= nil) or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled)
 
 local fischbypass
 
@@ -36,735 +34,540 @@ end
 
 local RenderStepped = RunService.Heartbeat
 
-local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
+local ProtectGui = protectgui or (syn and syn.protect_gui) or (Fluxus and Fluxus.protect_gui) or function() end
 
 local Themes = {
 	Names = {
+		"Glass",
 		"Dark",
-		"Darker", 
-		"AMOLED",
-		"Light",
-		"Balloon",
-		"SoftCream",
-		"Aqua", 
-		"Amethyst",
-		"Rose",
-		"Midnight",
-		"Forest",
-		"Sunset", 
-		"Ocean",
+		"Cyberpunk",
+		"Catppuccin",
+		"TokyoNight",
+		"Obsidian",
 		"Emerald",
-		"Sapphire",
-		"Cloud",
-		"Grape",
-		"Bloody",
-		"Arctic"
+		"Amethyst",
+		"Sunset",
+		"Aurora"
+	},
+	Glass = {
+		Name = "Glass",
+		Accent = Color3.fromRGB(0, 180, 255),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(120, 220, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 160, 255)),
+		}),
+		AcrylicMain = Color3.fromRGB(15, 18, 24),
+		AcrylicBorder = Color3.fromRGB(120, 180, 255),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(0.3, Color3.fromRGB(130, 225, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 140, 255)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 48, 72)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(16, 24, 38)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 14, 22)),
+		}),
+		AcrylicNoise = 0.96,
+		TitleBarLine = Color3.fromRGB(55, 65, 80),
+		Tab = Color3.fromRGB(140, 155, 175),
+		Element = Color3.fromRGB(30, 36, 48),
+		ElementBorder = Color3.fromRGB(50, 60, 80),
+		InElementBorder = Color3.fromRGB(70, 85, 110),
+		ElementTransparency = 0.72,
+		ToggleSlider = Color3.fromRGB(140, 160, 185),
+		ToggleToggled = Color3.fromRGB(0, 180, 255),
+		SliderRail = Color3.fromRGB(45, 55, 75),
+		DropdownFrame = Color3.fromRGB(24, 28, 38),
+		DropdownHolder = Color3.fromRGB(18, 22, 30),
+		DropdownBorder = Color3.fromRGB(50, 60, 80),
+		DropdownOption = Color3.fromRGB(32, 38, 52),
+		Keybind = Color3.fromRGB(35, 42, 58),
+		Input = Color3.fromRGB(26, 32, 44),
+		InputFocused = Color3.fromRGB(16, 20, 28),
+		InputIndicator = Color3.fromRGB(90, 110, 140),
+		InputIndicatorFocus = Color3.fromRGB(0, 180, 255),
+		Dialog = Color3.fromRGB(20, 24, 32),
+		DialogHolder = Color3.fromRGB(15, 18, 24),
+		DialogHolderLine = Color3.fromRGB(35, 42, 55),
+		DialogButton = Color3.fromRGB(28, 34, 46),
+		DialogButtonBorder = Color3.fromRGB(55, 65, 85),
+		DialogBorder = Color3.fromRGB(45, 55, 75),
+		DialogInput = Color3.fromRGB(24, 28, 38),
+		DialogInputLine = Color3.fromRGB(60, 75, 100),
+		Text = Color3.fromRGB(245, 248, 255),
+		SubText = Color3.fromRGB(150, 165, 185),
+		Hover = Color3.fromRGB(45, 55, 75),
+		HoverChange = 0.05,
 	},
 	Dark = {
 		Name = "Dark",
 		Accent = Color3.fromRGB(96, 205, 255),
-		AcrylicMain = Color3.fromRGB(60, 60, 60),
-		AcrylicBorder = Color3.fromRGB(90, 90, 90),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(40, 40, 40), Color3.fromRGB(40, 40, 40)),
-		AcrylicNoise = 0.9,
-		TitleBarLine = Color3.fromRGB(75, 75, 75),
-		Tab = Color3.fromRGB(120, 120, 120),
-		Element = Color3.fromRGB(120, 120, 120),
-		ElementBorder = Color3.fromRGB(35, 35, 35),
-		InElementBorder = Color3.fromRGB(90, 90, 90),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(120, 120, 120),
-		ToggleToggled = Color3.fromRGB(42, 42, 42),
-		SliderRail = Color3.fromRGB(120, 120, 120),
-		DropdownFrame = Color3.fromRGB(160, 160, 160),
-		DropdownHolder = Color3.fromRGB(45, 45, 45),
-		DropdownBorder = Color3.fromRGB(35, 35, 35),
-		DropdownOption = Color3.fromRGB(120, 120, 120),
-		Keybind = Color3.fromRGB(120, 120, 120),
-		Input = Color3.fromRGB(160, 160, 160),
-		InputFocused = Color3.fromRGB(10, 10, 10),
-		InputIndicator = Color3.fromRGB(150, 150, 150),
-		Dialog = Color3.fromRGB(45, 45, 45),
-		DialogHolder = Color3.fromRGB(35, 35, 35),
-		DialogHolderLine = Color3.fromRGB(30, 30, 30),
-		DialogButton = Color3.fromRGB(45, 45, 45),
-		DialogButtonBorder = Color3.fromRGB(80, 80, 80),
-		DialogBorder = Color3.fromRGB(70, 70, 70),
-		DialogInput = Color3.fromRGB(55, 55, 55),
-		DialogInputLine = Color3.fromRGB(160, 160, 160),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(120, 120, 120),
-		HoverChange = 0.07,
-	},
-	Darker = {
-		Name = "Darker",
-		Accent = Color3.fromRGB(56, 109, 223),
-		AcrylicMain = Color3.fromRGB(30, 30, 30),
-		AcrylicBorder = Color3.fromRGB(60, 60, 60),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(17, 17, 17), Color3.fromRGB(18, 18, 18)),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(130, 220, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(96, 205, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 140, 245)),
+		}),
+		AcrylicMain = Color3.fromRGB(24, 25, 29),
+		AcrylicBorder = Color3.fromRGB(70, 85, 115),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 220, 255)),
+			ColorSequenceKeypoint.new(0.35, Color3.fromRGB(96, 205, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 65, 95)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(36, 42, 54)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(25, 28, 36)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 17, 22)),
+		}),
 		AcrylicNoise = 0.94,
-		TitleBarLine = Color3.fromRGB(65, 65, 65),
-		Tab = Color3.fromRGB(100, 100, 100),
-		Element = Color3.fromRGB(70, 70, 70),
-		ElementBorder = Color3.fromRGB(25, 25, 25),
-		InElementBorder = Color3.fromRGB(55, 55, 55),
+		TitleBarLine = Color3.fromRGB(48, 50, 60),
+		Tab = Color3.fromRGB(150, 155, 170),
+		Element = Color3.fromRGB(34, 36, 44),
+		ElementBorder = Color3.fromRGB(46, 48, 58),
+		InElementBorder = Color3.fromRGB(65, 68, 82),
 		ElementTransparency = 0.82,
-		DropdownFrame = Color3.fromRGB(120, 120, 120),
-		DropdownHolder = Color3.fromRGB(35, 35, 35),
-		DropdownBorder = Color3.fromRGB(25, 25, 25),
-		Dialog = Color3.fromRGB(35, 35, 35),
-		DialogHolder = Color3.fromRGB(25, 25, 25),
-		DialogHolderLine = Color3.fromRGB(20, 20, 20),
-		DialogButton = Color3.fromRGB(35, 35, 35),
-		DialogButtonBorder = Color3.fromRGB(55, 55, 55),
-		DialogBorder = Color3.fromRGB(50, 50, 50),
-		DialogInput = Color3.fromRGB(45, 45, 45),
-		DialogInputLine = Color3.fromRGB(120, 120, 120),
+		ToggleSlider = Color3.fromRGB(130, 135, 150),
+		ToggleToggled = Color3.fromRGB(42, 42, 42),
+		SliderRail = Color3.fromRGB(50, 52, 64),
+		DropdownFrame = Color3.fromRGB(36, 38, 48),
+		DropdownHolder = Color3.fromRGB(28, 30, 36),
+		DropdownBorder = Color3.fromRGB(48, 50, 62),
+		DropdownOption = Color3.fromRGB(42, 44, 56),
+		Keybind = Color3.fromRGB(42, 44, 56),
+		Input = Color3.fromRGB(34, 36, 44),
+		InputFocused = Color3.fromRGB(16, 17, 20),
+		InputIndicator = Color3.fromRGB(110, 115, 130),
+		Dialog = Color3.fromRGB(26, 28, 34),
+		DialogHolder = Color3.fromRGB(20, 21, 25),
+		DialogHolderLine = Color3.fromRGB(36, 38, 46),
+		DialogButton = Color3.fromRGB(34, 36, 44),
+		DialogButtonBorder = Color3.fromRGB(58, 60, 72),
+		DialogBorder = Color3.fromRGB(50, 52, 64),
+		DialogInput = Color3.fromRGB(30, 32, 38),
+		DialogInputLine = Color3.fromRGB(70, 74, 90),
+		Text = Color3.fromRGB(245, 246, 250),
+		SubText = Color3.fromRGB(160, 165, 180),
+		Hover = Color3.fromRGB(48, 50, 62),
+		HoverChange = 0.05,
 	},
-	AMOLED = {
-		Name = "AMOLED",
-		Accent = Color3.fromRGB(255, 255, 255),
-		AcrylicMain = Color3.fromRGB(0, 0, 0),
-		AcrylicBorder = Color3.fromRGB(20, 20, 20),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(0, 0, 0), Color3.fromRGB(0, 0, 0)),
-		AcrylicNoise = 1,
-		TitleBarLine = Color3.fromRGB(25, 25, 25),
-		Tab = Color3.fromRGB(40, 40, 40),
-		Element = Color3.fromRGB(15, 15, 15),
-		ElementBorder = Color3.fromRGB(0, 0, 0),
-		InElementBorder = Color3.fromRGB(40, 40, 40),
-		ElementTransparency = 0.95,
-		ToggleSlider = Color3.fromRGB(40, 40, 40),
-		ToggleToggled = Color3.fromRGB(255, 255, 255),
-		SliderRail = Color3.fromRGB(40, 40, 40),
-		DropdownFrame = Color3.fromRGB(20, 20, 20),
-		DropdownHolder = Color3.fromRGB(0, 0, 0),
-		DropdownBorder = Color3.fromRGB(0, 0, 0),
-		DropdownOption = Color3.fromRGB(40, 40, 40),
-		Keybind = Color3.fromRGB(40, 40, 40),
-		Input = Color3.fromRGB(40, 40, 40),
-		InputFocused = Color3.fromRGB(0, 0, 0),
-		InputIndicator = Color3.fromRGB(60, 60, 60),
-		InputIndicatorFocus = Color3.fromRGB(255, 255, 255),
-		Dialog = Color3.fromRGB(0, 0, 0),
-		DialogHolder = Color3.fromRGB(0, 0, 0),
-		DialogHolderLine = Color3.fromRGB(20, 20, 20),
-		DialogButton = Color3.fromRGB(15, 15, 15),
-		DialogButtonBorder = Color3.fromRGB(30, 30, 30),
-		DialogBorder = Color3.fromRGB(27, 27, 27),
-		DialogInput = Color3.fromRGB(15, 15, 15),
-		DialogInputLine = Color3.fromRGB(60, 60, 60),
+	Cyberpunk = {
+		Name = "Cyberpunk",
+		Accent = Color3.fromRGB(255, 230, 0),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 240, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 230, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128)),
+		}),
+		AcrylicMain = Color3.fromRGB(13, 10, 20),
+		AcrylicBorder = Color3.fromRGB(255, 230, 0),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 240, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 230, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(44, 18, 64)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(22, 12, 34)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 8, 16)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(80, 40, 100),
+		Tab = Color3.fromRGB(180, 150, 220),
+		Element = Color3.fromRGB(26, 20, 38),
+		ElementBorder = Color3.fromRGB(60, 40, 85),
+		InElementBorder = Color3.fromRGB(110, 70, 150),
+		ElementTransparency = 0.85,
+		ToggleSlider = Color3.fromRGB(180, 140, 230),
+		ToggleToggled = Color3.fromRGB(255, 230, 0),
+		SliderRail = Color3.fromRGB(50, 35, 70),
+		DropdownFrame = Color3.fromRGB(25, 18, 36),
+		DropdownHolder = Color3.fromRGB(18, 12, 28),
+		DropdownBorder = Color3.fromRGB(80, 50, 110),
+		DropdownOption = Color3.fromRGB(35, 25, 50),
+		Keybind = Color3.fromRGB(35, 25, 50),
+		Input = Color3.fromRGB(28, 20, 40),
+		InputFocused = Color3.fromRGB(15, 10, 22),
+		InputIndicator = Color3.fromRGB(150, 100, 210),
+		InputIndicatorFocus = Color3.fromRGB(255, 230, 0),
+		Dialog = Color3.fromRGB(20, 14, 30),
+		DialogHolder = Color3.fromRGB(15, 10, 22),
+		DialogHolderLine = Color3.fromRGB(45, 30, 65),
+		DialogButton = Color3.fromRGB(30, 20, 45),
+		DialogButtonBorder = Color3.fromRGB(75, 45, 110),
+		DialogBorder = Color3.fromRGB(70, 45, 100),
+		DialogInput = Color3.fromRGB(26, 18, 38),
+		DialogInputLine = Color3.fromRGB(120, 80, 170),
 		Text = Color3.fromRGB(255, 255, 255),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(40, 40, 40),
-		HoverChange = 0.04
+		SubText = Color3.fromRGB(190, 160, 220),
+		Hover = Color3.fromRGB(45, 32, 65),
+		HoverChange = 0.05,
 	},
-	Light = {
-		Name = "Light",
-		Accent = Color3.fromRGB(0, 103, 192),
-		AcrylicMain = Color3.fromRGB(200, 200, 200),
-		AcrylicBorder = Color3.fromRGB(120, 120, 120),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255)),
-		AcrylicNoise = 0.96,
-		TitleBarLine = Color3.fromRGB(160, 160, 160),
-		Tab = Color3.fromRGB(90, 90, 90),
-		Element = Color3.fromRGB(255, 255, 255),
-		ElementBorder = Color3.fromRGB(180, 180, 180),
-		InElementBorder = Color3.fromRGB(150, 150, 150),
-		ElementTransparency = 0.65,
-		ToggleSlider = Color3.fromRGB(40, 40, 40),
+	Catppuccin = {
+		Name = "Catppuccin",
+		Accent = Color3.fromRGB(203, 166, 247),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(245, 194, 231)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(203, 166, 247)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 190, 254)),
+		}),
+		AcrylicMain = Color3.fromRGB(24, 24, 37),
+		AcrylicBorder = Color3.fromRGB(203, 166, 247),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(245, 194, 231)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(203, 166, 247)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 190, 254)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 35, 58)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(25, 23, 36)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(17, 17, 27)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(49, 50, 68),
+		Tab = Color3.fromRGB(186, 194, 222),
+		Element = Color3.fromRGB(30, 30, 46),
+		ElementBorder = Color3.fromRGB(49, 50, 68),
+		InElementBorder = Color3.fromRGB(69, 71, 90),
+		ElementTransparency = 0.85,
+		ToggleSlider = Color3.fromRGB(186, 194, 222),
+		ToggleToggled = Color3.fromRGB(203, 166, 247),
+		SliderRail = Color3.fromRGB(49, 50, 68),
+		DropdownFrame = Color3.fromRGB(30, 30, 46),
+		DropdownHolder = Color3.fromRGB(24, 24, 37),
+		DropdownBorder = Color3.fromRGB(49, 50, 68),
+		DropdownOption = Color3.fromRGB(36, 36, 54),
+		Keybind = Color3.fromRGB(36, 36, 54),
+		Input = Color3.fromRGB(30, 30, 46),
+		InputFocused = Color3.fromRGB(17, 17, 27),
+		InputIndicator = Color3.fromRGB(108, 112, 134),
+		InputIndicatorFocus = Color3.fromRGB(203, 166, 247),
+		Dialog = Color3.fromRGB(24, 24, 37),
+		DialogHolder = Color3.fromRGB(17, 17, 27),
+		DialogHolderLine = Color3.fromRGB(49, 50, 68),
+		DialogButton = Color3.fromRGB(30, 30, 46),
+		DialogButtonBorder = Color3.fromRGB(69, 71, 90),
+		DialogBorder = Color3.fromRGB(58, 59, 78),
+		DialogInput = Color3.fromRGB(30, 30, 46),
+		DialogInputLine = Color3.fromRGB(88, 91, 112),
+		Text = Color3.fromRGB(205, 214, 244),
+		SubText = Color3.fromRGB(166, 173, 200),
+		Hover = Color3.fromRGB(49, 50, 68),
+		HoverChange = 0.05,
+	},
+	TokyoNight = {
+		Name = "TokyoNight",
+		Accent = Color3.fromRGB(122, 162, 247),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(187, 154, 247)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(122, 162, 247)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(42, 195, 222)),
+		}),
+		AcrylicMain = Color3.fromRGB(18, 19, 28),
+		AcrylicBorder = Color3.fromRGB(122, 162, 247),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(187, 154, 247)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(122, 162, 247)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(42, 195, 222)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(32, 35, 54)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(22, 23, 36)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 23)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(35, 38, 54),
+		Tab = Color3.fromRGB(169, 177, 214),
+		Element = Color3.fromRGB(26, 27, 38),
+		ElementBorder = Color3.fromRGB(41, 46, 66),
+		InElementBorder = Color3.fromRGB(65, 72, 104),
+		ElementTransparency = 0.85,
+		ToggleSlider = Color3.fromRGB(169, 177, 214),
+		ToggleToggled = Color3.fromRGB(122, 162, 247),
+		SliderRail = Color3.fromRGB(41, 46, 66),
+		DropdownFrame = Color3.fromRGB(26, 27, 38),
+		DropdownHolder = Color3.fromRGB(18, 19, 28),
+		DropdownBorder = Color3.fromRGB(41, 46, 66),
+		DropdownOption = Color3.fromRGB(33, 34, 49),
+		Keybind = Color3.fromRGB(33, 34, 49),
+		Input = Color3.fromRGB(26, 27, 38),
+		InputFocused = Color3.fromRGB(15, 15, 23),
+		InputIndicator = Color3.fromRGB(86, 95, 137),
+		InputIndicatorFocus = Color3.fromRGB(122, 162, 247),
+		Dialog = Color3.fromRGB(18, 19, 28),
+		DialogHolder = Color3.fromRGB(15, 15, 23),
+		DialogHolderLine = Color3.fromRGB(35, 38, 54),
+		DialogButton = Color3.fromRGB(26, 27, 38),
+		DialogButtonBorder = Color3.fromRGB(56, 63, 92),
+		DialogBorder = Color3.fromRGB(45, 50, 72),
+		DialogInput = Color3.fromRGB(26, 27, 38),
+		DialogInputLine = Color3.fromRGB(86, 95, 137),
+		Text = Color3.fromRGB(192, 202, 245),
+		SubText = Color3.fromRGB(120, 130, 170),
+		Hover = Color3.fromRGB(41, 46, 66),
+		HoverChange = 0.05,
+	},
+	Obsidian = {
+		Name = "Obsidian",
+		Accent = Color3.fromRGB(250, 250, 255),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(210, 215, 225)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 155, 165)),
+		}),
+		AcrylicMain = Color3.fromRGB(10, 10, 12),
+		AcrylicBorder = Color3.fromRGB(50, 52, 60),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(160, 165, 175)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(75, 80, 90)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 32, 36)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 23, 26)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(14, 14, 16)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
+		}),
+		AcrylicNoise = 0.98,
+		TitleBarLine = Color3.fromRGB(30, 32, 38),
+		Tab = Color3.fromRGB(170, 175, 185),
+		Element = Color3.fromRGB(18, 19, 22),
+		ElementBorder = Color3.fromRGB(36, 38, 44),
+		InElementBorder = Color3.fromRGB(55, 58, 68),
+		ElementTransparency = 0.92,
+		ToggleSlider = Color3.fromRGB(150, 155, 165),
 		ToggleToggled = Color3.fromRGB(255, 255, 255),
-		SliderRail = Color3.fromRGB(40, 40, 40),
-		DropdownFrame = Color3.fromRGB(200, 200, 200),
-		DropdownHolder = Color3.fromRGB(240, 240, 240),
-		DropdownBorder = Color3.fromRGB(200, 200, 200),
-		DropdownOption = Color3.fromRGB(150, 150, 150),
-		Keybind = Color3.fromRGB(120, 120, 120),
-		Input = Color3.fromRGB(200, 200, 200),
-		InputFocused = Color3.fromRGB(100, 100, 100),
-		InputIndicator = Color3.fromRGB(80, 80, 80),
-		InputIndicatorFocus = Color3.fromRGB(0, 103, 192),
-		Dialog = Color3.fromRGB(255, 255, 255),
-		DialogHolder = Color3.fromRGB(240, 240, 240),
-		DialogHolderLine = Color3.fromRGB(228, 228, 228),
-		DialogButton = Color3.fromRGB(255, 255, 255),
-		DialogButtonBorder = Color3.fromRGB(190, 190, 190),
-		DialogBorder = Color3.fromRGB(140, 140, 140),
-		DialogInput = Color3.fromRGB(250, 250, 250),
-		DialogInputLine = Color3.fromRGB(160, 160, 160),
-		Text = Color3.fromRGB(0, 0, 0),
-		SubText = Color3.fromRGB(40, 40, 40),
-		Hover = Color3.fromRGB(50, 50, 50),
-		HoverChange = 0.16,
-	},
-	Balloon = {
-		Name = "Balloon",
-		Accent = Color3.fromRGB(100, 170, 255),
-		AcrylicMain = Color3.fromRGB(189, 224, 255),
-		AcrylicBorder = Color3.fromRGB(160, 227, 255),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(240, 250, 255), Color3.fromRGB(210, 235, 250)),
-		AcrylicNoise = 1,
-		TitleBarLine = Color3.fromRGB(150, 200, 255),
-		Tab = Color3.fromRGB(153, 185, 255),
-		Element = Color3.fromRGB(160, 200, 255),
-		ElementBorder = Color3.fromRGB(130, 170, 230),
-		InElementBorder = Color3.fromRGB(120, 174, 240),
-		ElementTransparency = 0.80,
-		ToggleSlider = Color3.fromRGB(93, 163, 255),
-		ToggleToggled = Color3.fromRGB(60, 112, 180),
-		SliderRail = Color3.fromRGB(170, 220, 255),
-		DropdownFrame = Color3.fromRGB(175, 235, 255),
-		DropdownHolder = Color3.fromRGB(200, 220, 240),
-		DropdownBorder = Color3.fromRGB(130, 170, 230),
-		DropdownOption = Color3.fromRGB(146, 202, 255),
-		Keybind = Color3.fromRGB(170, 220, 255),
-		Input = Color3.fromRGB(170, 220, 255),
-		InputFocused = Color3.fromRGB(75, 95, 140),
-		InputIndicator = Color3.fromRGB(190, 250, 255),
-		InputIndicatorFocus = Color3.fromRGB(100, 170, 255),
-		Dialog = Color3.fromRGB(189, 230, 255),
-		DialogHolder = Color3.fromRGB(201, 239, 255),
-		DialogHolderLine = Color3.fromRGB(197, 236, 250),
-		DialogButton = Color3.fromRGB(219, 252, 255),
-		DialogButtonBorder = Color3.fromRGB(160, 200, 255),
-		DialogBorder = Color3.fromRGB(175, 220, 255),
-		DialogInput = Color3.fromRGB(160, 200, 255),
-		DialogInputLine = Color3.fromRGB(185, 230, 255),
-		Text = Color3.fromRGB(30, 30, 30),
-		SubText = Color3.fromRGB(90, 90, 90),
-		Hover = Color3.fromRGB(170, 220, 255),
-		HoverChange = 0.03
-	},
-	SoftCream = {
-		Name = "SoftCream",
-		Accent = Color3.fromRGB(206, 163, 90),
-		AcrylicMain = Color3.fromRGB(255, 245, 220),
-		AcrylicBorder = Color3.fromRGB(255, 230, 200),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(255, 245, 220), Color3.fromRGB(255, 235, 210)),
-		AcrylicNoise = 0.93,
-		TitleBarLine = Color3.fromRGB(255, 220, 190),
-		Tab = Color3.fromRGB(199, 165, 112),
-		Element = Color3.fromRGB(255, 216, 161),
-		ElementBorder = Color3.fromRGB(234, 193, 111),
-		InElementBorder = Color3.fromRGB(255, 212, 143),
-		ElementTransparency = 0.80,
-		ToggleSlider = Color3.fromRGB(214, 175, 97),
-		ToggleToggled = Color3.fromRGB(200, 160, 100),
-		SliderRail = Color3.fromRGB(255, 220, 190),
-		DropdownFrame = Color3.fromRGB(255, 228, 164),
-		DropdownHolder = Color3.fromRGB(250, 240, 225),
-		DropdownBorder = Color3.fromRGB(255, 210, 180),
-		DropdownOption = Color3.fromRGB(255, 190, 115),
-		Keybind = Color3.fromRGB(255, 220, 190),
-		Input = Color3.fromRGB(255, 220, 190),
-		InputFocused = Color3.fromRGB(180, 140, 80),
-		InputIndicator = Color3.fromRGB(255, 250, 205),
-		InputIndicatorFocus = Color3.fromRGB(255, 236, 158),
-		Dialog = Color3.fromRGB(255, 255, 240),
-		DialogHolder = Color3.fromRGB(255, 245, 220),
-		DialogHolderLine = Color3.fromRGB(255, 240, 210),
-		DialogButton = Color3.fromRGB(255, 255, 240),
-		DialogButtonBorder = Color3.fromRGB(255, 210, 180),
-		DialogBorder = Color3.fromRGB(255, 220, 190),
-		DialogInput = Color3.fromRGB(255, 210, 180),
-		DialogInputLine = Color3.fromRGB(255, 225, 205),
-		Text = Color3.fromRGB(30, 30, 30),
-		SubText = Color3.fromRGB(90, 90, 90),
-		Hover = Color3.fromRGB(255, 220, 190),
-		HoverChange = 0.03
-	},
-	Aqua = {
-		Name = "Aqua",
-		Accent = Color3.fromRGB(38, 166, 178),
-		AcrylicMain = Color3.fromRGB(18, 54, 61),
-		AcrylicBorder = Color3.fromRGB(80, 118, 130),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(41, 101, 139), Color3.fromRGB(11, 132, 128)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(68, 135, 136),
-		Tab = Color3.fromRGB(126, 175, 180),
-		Element = Color3.fromRGB(66, 130, 160),
-		ElementBorder = Color3.fromRGB(40, 100, 122),
-		InElementBorder = Color3.fromRGB(75, 109, 110),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(100, 152, 160),
-		ToggleToggled = Color3.fromRGB(25, 70, 95),
-		SliderRail = Color3.fromRGB(115, 150, 160),
-		DropdownFrame = Color3.fromRGB(158, 194, 200),
-		DropdownHolder = Color3.fromRGB(39, 99, 116),
-		DropdownBorder = Color3.fromRGB(33, 119, 120),
-		DropdownOption = Color3.fromRGB(121, 152, 160),
-		Keybind = Color3.fromRGB(108, 153, 160),
-		Input = Color3.fromRGB(112, 156, 160),
-		InputFocused = Color3.fromRGB(14, 35, 40),
-		InputIndicator = Color3.fromRGB(137, 181, 190),
-		Dialog = Color3.fromRGB(27, 113, 130),
-		DialogHolder = Color3.fromRGB(33, 99, 109),
-		DialogHolderLine = Color3.fromRGB(34, 81, 86),
-		DialogButton = Color3.fromRGB(27, 128, 130),
-		DialogButtonBorder = Color3.fromRGB(62, 100, 110),
-		DialogBorder = Color3.fromRGB(26, 86, 100),
-		DialogInput = Color3.fromRGB(36, 107, 105),
-		DialogInputLine = Color3.fromRGB(70, 120, 130),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(112, 155, 160),
+		SliderRail = Color3.fromRGB(35, 36, 42),
+		DropdownFrame = Color3.fromRGB(20, 21, 24),
+		DropdownHolder = Color3.fromRGB(12, 13, 15),
+		DropdownBorder = Color3.fromRGB(38, 40, 46),
+		DropdownOption = Color3.fromRGB(28, 29, 34),
+		Keybind = Color3.fromRGB(26, 27, 32),
+		Input = Color3.fromRGB(20, 21, 25),
+		InputFocused = Color3.fromRGB(10, 10, 12),
+		InputIndicator = Color3.fromRGB(80, 85, 95),
+		InputIndicatorFocus = Color3.fromRGB(255, 255, 255),
+		Dialog = Color3.fromRGB(14, 15, 18),
+		DialogHolder = Color3.fromRGB(10, 10, 12),
+		DialogHolderLine = Color3.fromRGB(30, 32, 38),
+		DialogButton = Color3.fromRGB(22, 23, 28),
+		DialogButtonBorder = Color3.fromRGB(45, 48, 56),
+		DialogBorder = Color3.fromRGB(38, 40, 48),
+		DialogInput = Color3.fromRGB(20, 21, 25),
+		DialogInputLine = Color3.fromRGB(60, 64, 75),
+		Text = Color3.fromRGB(255, 255, 255),
+		SubText = Color3.fromRGB(160, 165, 175),
+		Hover = Color3.fromRGB(34, 36, 42),
 		HoverChange = 0.04,
-	},
-	Amethyst = {
-		Name = "Amethyst",
-		Accent = Color3.fromRGB(126, 44, 182),
-		AcrylicMain = Color3.fromRGB(40, 12, 71),
-		AcrylicBorder = Color3.fromRGB(85, 45, 120),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(34, 19, 49), Color3.fromRGB(41, 24, 57)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(95, 55, 130),
-		Tab = Color3.fromRGB(135, 75, 170),
-		Element = Color3.fromRGB(115, 55, 150),
-		ElementBorder = Color3.fromRGB(60, 35, 85),
-		InElementBorder = Color3.fromRGB(85, 45, 110),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(135, 65, 160),
-		ToggleToggled = Color3.fromRGB(59, 30, 79),
-		SliderRail = Color3.fromRGB(135, 65, 160),
-		DropdownFrame = Color3.fromRGB(145, 85, 170),
-		DropdownHolder = Color3.fromRGB(50, 30, 70),
-		DropdownBorder = Color3.fromRGB(60, 35, 85),
-		DropdownOption = Color3.fromRGB(135, 65, 160),
-		Keybind = Color3.fromRGB(135, 65, 160),
-		Input = Color3.fromRGB(135, 65, 160),
-		InputFocused = Color3.fromRGB(25, 15, 35),
-		InputIndicator = Color3.fromRGB(155, 85, 180),
-		InputIndicatorFocus = Color3.fromRGB(126, 44, 182),
-		Dialog = Color3.fromRGB(50, 30, 70),
-		DialogHolder = Color3.fromRGB(40, 25, 60),
-		DialogHolderLine = Color3.fromRGB(35, 20, 55),
-		DialogButton = Color3.fromRGB(50, 30, 70),
-		DialogButtonBorder = Color3.fromRGB(90, 50, 120),
-		DialogBorder = Color3.fromRGB(80, 45, 110),
-		DialogInput = Color3.fromRGB(60, 35, 80),
-		DialogInputLine = Color3.fromRGB(145, 75, 170),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(135, 65, 160),
-		HoverChange = 0.04
-	},
-	Rose = {
-		Name = "Rose",
-		Accent = Color3.fromRGB(219, 48, 123),
-		AcrylicMain = Color3.fromRGB(35, 25, 30),
-		AcrylicBorder = Color3.fromRGB(145, 35, 75),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(65, 25, 45), Color3.fromRGB(75, 30, 50)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(150, 65, 95),
-		Tab = Color3.fromRGB(190, 85, 115),
-		Element = Color3.fromRGB(170, 60, 90),
-		ElementBorder = Color3.fromRGB(95, 35, 55),
-		InElementBorder = Color3.fromRGB(120, 50, 70),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(190, 75, 105),
-		ToggleToggled = Color3.fromRGB(45, 15, 25),
-		SliderRail = Color3.fromRGB(190, 75, 105),
-		DropdownFrame = Color3.fromRGB(200, 95, 125),
-		DropdownHolder = Color3.fromRGB(75, 30, 45),
-		DropdownBorder = Color3.fromRGB(95, 35, 55),
-		DropdownOption = Color3.fromRGB(190, 75, 105),
-		Keybind = Color3.fromRGB(190, 75, 105),
-		Input = Color3.fromRGB(190, 75, 105),
-		InputFocused = Color3.fromRGB(35, 15, 20),
-		InputIndicator = Color3.fromRGB(210, 95, 125),
-		InputIndicatorFocus = Color3.fromRGB(219, 48, 123),
-		Dialog = Color3.fromRGB(75, 30, 45),
-		DialogHolder = Color3.fromRGB(65, 25, 40),
-		DialogHolderLine = Color3.fromRGB(60, 20, 35),
-		DialogButton = Color3.fromRGB(75, 30, 45),
-		DialogButtonBorder = Color3.fromRGB(115, 45, 65),
-		DialogBorder = Color3.fromRGB(105, 40, 60),
-		DialogInput = Color3.fromRGB(85, 35, 50),
-		DialogInputLine = Color3.fromRGB(200, 85, 115),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(190, 75, 105),
-		HoverChange = 0.04
-	},
-	Midnight = {
-		Name = "Midnight",
-		Accent = Color3.fromRGB(52, 50, 178),
-		AcrylicMain = Color3.fromRGB(20, 20, 20),
-		AcrylicBorder = Color3.fromRGB(83, 83, 130),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(1, 1, 39), Color3.fromRGB(6, 6, 54)),
-		AcrylicNoise = 0.96,
-		TitleBarLine = Color3.fromRGB(77, 75, 126),
-		Tab = Color3.fromRGB(126, 127, 180),
-		Element = Color3.fromRGB(111, 108, 160),
-		ElementBorder = Color3.fromRGB(32, 32, 59),
-		InElementBorder = Color3.fromRGB(85, 83, 110),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(120, 117, 160),
-		ToggleToggled = Color3.fromRGB(30, 12, 68),
-		SliderRail = Color3.fromRGB(117, 117, 160),
-		DropdownFrame = Color3.fromRGB(161, 161, 200),
-		DropdownHolder = Color3.fromRGB(35, 36, 80),
-		DropdownBorder = Color3.fromRGB(32, 30, 65),
-		DropdownOption = Color3.fromRGB(116, 116, 160),
-		Keybind = Color3.fromRGB(110, 123, 160),
-		Input = Color3.fromRGB(116, 112, 160),
-		InputFocused = Color3.fromRGB(20, 10, 30),
-		InputIndicator = Color3.fromRGB(136, 140, 190),
-		Dialog = Color3.fromRGB(37, 37, 80),
-		DialogHolder = Color3.fromRGB(24, 24, 65),
-		DialogHolderLine = Color3.fromRGB(25, 26, 60),
-		DialogButton = Color3.fromRGB(46, 44, 80),
-		DialogButtonBorder = Color3.fromRGB(71, 72, 110),
-		DialogBorder = Color3.fromRGB(72, 70, 100),
-		DialogInput = Color3.fromRGB(55, 55, 85),
-		DialogInputLine = Color3.fromRGB(133, 131, 190),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(119, 121, 160),
-		HoverChange = 0.04,
-	},
-	Forest = {
-		Name = "Forest",
-		Accent = Color3.fromRGB(46, 141, 70),
-		AcrylicMain = Color3.fromRGB(20, 35, 25),
-		AcrylicBorder = Color3.fromRGB(50, 90, 60),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(15, 35, 20), Color3.fromRGB(20, 40, 25)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(60, 100, 70),
-		Tab = Color3.fromRGB(80, 140, 90),
-		Element = Color3.fromRGB(70, 120, 80),
-		ElementBorder = Color3.fromRGB(30, 50, 35),
-		InElementBorder = Color3.fromRGB(60, 90, 70),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(90, 150, 100),
-		ToggleToggled = Color3.fromRGB(19, 57, 21),
-		SliderRail = Color3.fromRGB(90, 150, 100),
-		DropdownFrame = Color3.fromRGB(100, 160, 110),
-		DropdownHolder = Color3.fromRGB(35, 60, 40),
-		DropdownBorder = Color3.fromRGB(30, 50, 35),
-		DropdownOption = Color3.fromRGB(90, 150, 100),
-		Keybind = Color3.fromRGB(90, 150, 100),
-		Input = Color3.fromRGB(90, 150, 100),
-		InputFocused = Color3.fromRGB(15, 25, 18),
-		InputIndicator = Color3.fromRGB(110, 170, 120),
-		InputIndicatorFocus = Color3.fromRGB(46, 141, 70),
-		Dialog = Color3.fromRGB(35, 60, 40),
-		DialogHolder = Color3.fromRGB(30, 50, 35),
-		DialogHolderLine = Color3.fromRGB(25, 45, 30),
-		DialogButton = Color3.fromRGB(35, 60, 40),
-		DialogButtonBorder = Color3.fromRGB(70, 110, 80),
-		DialogBorder = Color3.fromRGB(60, 100, 70),
-		DialogInput = Color3.fromRGB(45, 70, 50),
-		DialogInputLine = Color3.fromRGB(100, 160, 110),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(90, 150, 100),
-		HoverChange = 0.04
-	},
-	Sunset = {
-		Name = "Sunset",
-		Accent = Color3.fromRGB(255, 128, 0),
-		AcrylicMain = Color3.fromRGB(40, 25, 25),
-		AcrylicBorder = Color3.fromRGB(130, 80, 60),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(70, 35, 20), Color3.fromRGB(60, 30, 20)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(140, 90, 70),
-		Tab = Color3.fromRGB(180, 120, 90),
-		Element = Color3.fromRGB(160, 100, 70),
-		ElementBorder = Color3.fromRGB(70, 40, 30),
-		InElementBorder = Color3.fromRGB(110, 70, 50),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(180, 110, 80),
-		ToggleToggled = Color3.fromRGB(62, 34, 21),
-		SliderRail = Color3.fromRGB(180, 110, 80),
-		DropdownFrame = Color3.fromRGB(190, 130, 100),
-		DropdownHolder = Color3.fromRGB(60, 35, 25),
-		DropdownBorder = Color3.fromRGB(70, 40, 30),
-		DropdownOption = Color3.fromRGB(180, 110, 80),
-		Keybind = Color3.fromRGB(180, 110, 80),
-		Input = Color3.fromRGB(180, 110, 80),
-		InputFocused = Color3.fromRGB(30, 20, 15),
-		InputIndicator = Color3.fromRGB(200, 130, 100),
-		InputIndicatorFocus = Color3.fromRGB(255, 128, 0),
-		Dialog = Color3.fromRGB(60, 35, 25),
-		DialogHolder = Color3.fromRGB(50, 30, 20),
-		DialogHolderLine = Color3.fromRGB(45, 25, 15),
-		DialogButton = Color3.fromRGB(60, 35, 25),
-		DialogButtonBorder = Color3.fromRGB(100, 65, 45),
-		DialogBorder = Color3.fromRGB(90, 55, 40),
-		DialogInput = Color3.fromRGB(70, 45, 35),
-		DialogInputLine = Color3.fromRGB(190, 120, 90),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(180, 110, 80),
-		HoverChange = 0.04
-	},
-	Ocean = {
-		Name = "Ocean",
-		Accent = Color3.fromRGB(0, 141, 255),
-		AcrylicMain = Color3.fromRGB(20, 25, 40),
-		AcrylicBorder = Color3.fromRGB(40, 60, 100),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(15, 25, 45), Color3.fromRGB(20, 30, 50)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(50, 70, 120),
-		Tab = Color3.fromRGB(70, 90, 160),
-		Element = Color3.fromRGB(60, 80, 140),
-		ElementBorder = Color3.fromRGB(30, 40, 70),
-		InElementBorder = Color3.fromRGB(50, 60, 100),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(80, 100, 170),
-		ToggleToggled = Color3.fromRGB(11, 35, 67),
-		SliderRail = Color3.fromRGB(80, 100, 170),
-		DropdownFrame = Color3.fromRGB(90, 110, 180),
-		DropdownHolder = Color3.fromRGB(25, 35, 60),
-		DropdownBorder = Color3.fromRGB(30, 40, 70),
-		DropdownOption = Color3.fromRGB(80, 100, 170),
-		Keybind = Color3.fromRGB(80, 100, 170),
-		Input = Color3.fromRGB(80, 100, 170),
-		InputFocused = Color3.fromRGB(15, 20, 35),
-		InputIndicator = Color3.fromRGB(100, 120, 190),
-		InputIndicatorFocus = Color3.fromRGB(0, 141, 255),
-		Dialog = Color3.fromRGB(25, 35, 60),
-		DialogHolder = Color3.fromRGB(20, 30, 55),
-		DialogHolderLine = Color3.fromRGB(15, 25, 50),
-		DialogButton = Color3.fromRGB(25, 35, 60),
-		DialogButtonBorder = Color3.fromRGB(45, 65, 110),
-		DialogBorder = Color3.fromRGB(40, 60, 100),
-		DialogInput = Color3.fromRGB(35, 45, 70),
-		DialogInputLine = Color3.fromRGB(90, 110, 180),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(80, 100, 170),
-		HoverChange = 0.04
 	},
 	Emerald = {
 		Name = "Emerald",
-		Accent = Color3.fromRGB(0, 168, 107),
-		AcrylicMain = Color3.fromRGB(20, 35, 30),
-		AcrylicBorder = Color3.fromRGB(30, 100, 80),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(20, 55, 45), Color3.fromRGB(25, 60, 50)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(40, 110, 90),
-		Tab = Color3.fromRGB(50, 130, 100),
-		Element = Color3.fromRGB(40, 120, 95),
-		ElementBorder = Color3.fromRGB(25, 75, 60),
-		InElementBorder = Color3.fromRGB(35, 85, 70),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(45, 130, 100),
-		ToggleToggled = Color3.fromRGB(15, 40, 30),
-		SliderRail = Color3.fromRGB(45, 130, 100),
-		DropdownFrame = Color3.fromRGB(55, 140, 110),
-		DropdownHolder = Color3.fromRGB(20, 70, 55),
-		DropdownBorder = Color3.fromRGB(25, 75, 60),
-		DropdownOption = Color3.fromRGB(45, 130, 100),
-		Keybind = Color3.fromRGB(45, 130, 100),
-		Input = Color3.fromRGB(45, 130, 100),
-		InputFocused = Color3.fromRGB(10, 35, 25),
-		InputIndicator = Color3.fromRGB(55, 150, 120),
-		InputIndicatorFocus = Color3.fromRGB(0, 168, 107),
-		Dialog = Color3.fromRGB(20, 70, 55),
-		DialogHolder = Color3.fromRGB(15, 65, 50),
-		DialogHolderLine = Color3.fromRGB(15, 60, 45),
-		DialogButton = Color3.fromRGB(20, 70, 55),
-		DialogButtonBorder = Color3.fromRGB(30, 90, 70),
-		DialogBorder = Color3.fromRGB(25, 85, 65),
-		DialogInput = Color3.fromRGB(25, 75, 60),
-		DialogInputLine = Color3.fromRGB(50, 140, 110),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(45, 130, 100),
-		HoverChange = 0.04
+		Accent = Color3.fromRGB(16, 215, 140),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 250, 185)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(16, 215, 140)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 160, 105)),
+		}),
+		AcrylicMain = Color3.fromRGB(12, 22, 18),
+		AcrylicBorder = Color3.fromRGB(30, 100, 75),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 250, 185)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(16, 215, 140)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 55, 42)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 44, 34)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(14, 28, 22)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 16, 13)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(25, 55, 42),
+		Tab = Color3.fromRGB(140, 200, 175),
+		Element = Color3.fromRGB(18, 32, 26),
+		ElementBorder = Color3.fromRGB(30, 60, 48),
+		InElementBorder = Color3.fromRGB(45, 95, 75),
+		ElementTransparency = 0.84,
+		ToggleSlider = Color3.fromRGB(140, 200, 175),
+		ToggleToggled = Color3.fromRGB(16, 215, 140),
+		SliderRail = Color3.fromRGB(28, 52, 42),
+		DropdownFrame = Color3.fromRGB(18, 32, 26),
+		DropdownHolder = Color3.fromRGB(12, 22, 18),
+		DropdownBorder = Color3.fromRGB(32, 65, 50),
+		DropdownOption = Color3.fromRGB(24, 42, 34),
+		Keybind = Color3.fromRGB(24, 42, 34),
+		Input = Color3.fromRGB(18, 32, 26),
+		InputFocused = Color3.fromRGB(10, 18, 14),
+		InputIndicator = Color3.fromRGB(50, 110, 85),
+		InputIndicatorFocus = Color3.fromRGB(16, 215, 140),
+		Dialog = Color3.fromRGB(14, 25, 20),
+		DialogHolder = Color3.fromRGB(10, 18, 14),
+		DialogHolderLine = Color3.fromRGB(25, 55, 42),
+		DialogButton = Color3.fromRGB(20, 36, 28),
+		DialogButtonBorder = Color3.fromRGB(35, 75, 58),
+		DialogBorder = Color3.fromRGB(30, 60, 48),
+		DialogInput = Color3.fromRGB(18, 32, 26),
+		DialogInputLine = Color3.fromRGB(45, 95, 75),
+		Text = Color3.fromRGB(235, 255, 245),
+		SubText = Color3.fromRGB(135, 185, 165),
+		Hover = Color3.fromRGB(28, 52, 42),
+		HoverChange = 0.05,
 	},
-	Sapphire = {
-		Name = "Sapphire",
-		Accent = Color3.fromRGB(0, 105, 255),
-		AcrylicMain = Color3.fromRGB(24, 30, 85),
-		AcrylicBorder = Color3.fromRGB(25, 80, 150),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(13, 33, 94), Color3.fromRGB(21, 44, 127)),
-		AcrylicNoise = 0.88,
-		TitleBarLine = Color3.fromRGB(50, 120, 200),
-		Tab = Color3.fromRGB(60, 140, 220),
-		Element = Color3.fromRGB(42, 98, 176),
-		ElementBorder = Color3.fromRGB(23, 66, 113),
-		InElementBorder = Color3.fromRGB(27, 65, 126),
-		ElementTransparency = 0.85,
-		ToggleSlider = Color3.fromRGB(50, 140, 210),
-		ToggleToggled = Color3.fromRGB(20, 50, 80),
-		SliderRail = Color3.fromRGB(50, 140, 210),
-		DropdownFrame = Color3.fromRGB(60, 150, 230),
-		DropdownHolder = Color3.fromRGB(15, 60, 100),
-		DropdownBorder = Color3.fromRGB(30, 90, 140),
-		DropdownOption = Color3.fromRGB(50, 140, 210),
-		Keybind = Color3.fromRGB(50, 140, 210),
-		Input = Color3.fromRGB(50, 140, 210),
-		InputFocused = Color3.fromRGB(15, 40, 60),
-		InputIndicator = Color3.fromRGB(60, 160, 240),
-		InputIndicatorFocus = Color3.fromRGB(0, 105, 255),
-		Dialog = Color3.fromRGB(10, 60, 100),
-		DialogHolder = Color3.fromRGB(15, 50, 90),
-		DialogHolderLine = Color3.fromRGB(15, 45, 80),
-		DialogButton = Color3.fromRGB(10, 60, 100),
-		DialogButtonBorder = Color3.fromRGB(30, 100, 160),
-		DialogBorder = Color3.fromRGB(20, 80, 130),
-		DialogInput = Color3.fromRGB(30, 90, 140),
-		DialogInputLine = Color3.fromRGB(55, 150, 230),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(50, 140, 210),
-		HoverChange = 0.05
+	Amethyst = {
+		Name = "Amethyst",
+		Accent = Color3.fromRGB(175, 82, 222),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(225, 120, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(175, 82, 222)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 45, 195)),
+		}),
+		AcrylicMain = Color3.fromRGB(20, 14, 28),
+		AcrylicBorder = Color3.fromRGB(105, 55, 145),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(220, 120, 255)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(175, 82, 222)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(55, 25, 85)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 22, 58)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(24, 15, 36)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 9, 22)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(55, 30, 75),
+		Tab = Color3.fromRGB(195, 165, 225),
+		Element = Color3.fromRGB(28, 20, 40),
+		ElementBorder = Color3.fromRGB(55, 38, 75),
+		InElementBorder = Color3.fromRGB(85, 55, 120),
+		ElementTransparency = 0.84,
+		ToggleSlider = Color3.fromRGB(195, 165, 225),
+		ToggleToggled = Color3.fromRGB(175, 82, 222),
+		SliderRail = Color3.fromRGB(48, 30, 68),
+		DropdownFrame = Color3.fromRGB(28, 20, 40),
+		DropdownHolder = Color3.fromRGB(20, 14, 28),
+		DropdownBorder = Color3.fromRGB(60, 40, 85),
+		DropdownOption = Color3.fromRGB(36, 26, 52),
+		Keybind = Color3.fromRGB(36, 26, 52),
+		Input = Color3.fromRGB(28, 20, 40),
+		InputFocused = Color3.fromRGB(16, 10, 24),
+		InputIndicator = Color3.fromRGB(115, 75, 155),
+		InputIndicatorFocus = Color3.fromRGB(175, 82, 222),
+		Dialog = Color3.fromRGB(22, 15, 32),
+		DialogHolder = Color3.fromRGB(16, 10, 24),
+		DialogHolderLine = Color3.fromRGB(50, 28, 70),
+		DialogButton = Color3.fromRGB(30, 22, 44),
+		DialogButtonBorder = Color3.fromRGB(65, 42, 95),
+		DialogBorder = Color3.fromRGB(55, 38, 75),
+		DialogInput = Color3.fromRGB(28, 20, 40),
+		DialogInputLine = Color3.fromRGB(85, 55, 120),
+		Text = Color3.fromRGB(250, 240, 255),
+		SubText = Color3.fromRGB(175, 150, 205),
+		Hover = Color3.fromRGB(48, 32, 68),
+		HoverChange = 0.05,
 	},
-	Cloud = {
-		Name = "Cloud",
-		Accent = Color3.fromRGB(27, 114, 138),
-		AcrylicMain = Color3.fromRGB(13, 62, 77),
-		AcrylicBorder = Color3.fromRGB(80, 118, 130),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(51, 74, 83), Color3.fromRGB(4, 47, 66)),
-		AcrylicNoise = 0.94,
-		TitleBarLine = Color3.fromRGB(97, 97, 97),
-		Tab = Color3.fromRGB(126, 175, 180),
-		Element = Color3.fromRGB(66, 130, 160),
-		ElementBorder = Color3.fromRGB(40, 100, 122),
-		InElementBorder = Color3.fromRGB(75, 109, 110),
-		ElementTransparency = 0.87,
-		ToggleSlider = Color3.fromRGB(100, 152, 160),
-		ToggleToggled = Color3.fromRGB(26, 59, 80),
-		SliderRail = Color3.fromRGB(115, 150, 160),
-		DropdownFrame = Color3.fromRGB(158, 194, 200),
-		DropdownHolder = Color3.fromRGB(39, 99, 116),
-		DropdownBorder = Color3.fromRGB(33, 119, 120),
-		DropdownOption = Color3.fromRGB(121, 152, 160),
-		Keybind = Color3.fromRGB(108, 153, 160),
-		Input = Color3.fromRGB(112, 156, 160),
-		InputFocused = Color3.fromRGB(14, 35, 40),
-		InputIndicator = Color3.fromRGB(137, 181, 190),
-		Dialog = Color3.fromRGB(11, 75, 88),
-		DialogHolder = Color3.fromRGB(18, 77, 93),
-		DialogHolderLine = Color3.fromRGB(33, 76, 86),
-		DialogButton = Color3.fromRGB(43, 72, 80),
-		DialogButtonBorder = Color3.fromRGB(62, 100, 110),
-		DialogBorder = Color3.fromRGB(26, 86, 100),
-		DialogInput = Color3.fromRGB(4, 97, 107),
-		DialogInputLine = Color3.fromRGB(70, 120, 130),
-		Text = Color3.fromRGB(209, 240, 233),
-		SubText = Color3.fromRGB(170, 170, 170),
-		Hover = Color3.fromRGB(112, 155, 160),
-		HoverChange = 0.04,
+	Sunset = {
+		Name = "Sunset",
+		Accent = Color3.fromRGB(255, 110, 80),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 185, 80)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 110, 80)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(225, 45, 115)),
+		}),
+		AcrylicMain = Color3.fromRGB(26, 16, 20),
+		AcrylicBorder = Color3.fromRGB(140, 65, 75),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 185, 80)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 110, 80)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 30, 55)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(48, 25, 32)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 16, 22)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 10, 14)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(65, 35, 42),
+		Tab = Color3.fromRGB(220, 165, 175),
+		Element = Color3.fromRGB(36, 22, 28),
+		ElementBorder = Color3.fromRGB(68, 40, 50),
+		InElementBorder = Color3.fromRGB(110, 60, 75),
+		ElementTransparency = 0.84,
+		ToggleSlider = Color3.fromRGB(220, 165, 175),
+		ToggleToggled = Color3.fromRGB(255, 110, 80),
+		SliderRail = Color3.fromRGB(58, 32, 40),
+		DropdownFrame = Color3.fromRGB(36, 22, 28),
+		DropdownHolder = Color3.fromRGB(26, 16, 20),
+		DropdownBorder = Color3.fromRGB(75, 42, 54),
+		DropdownOption = Color3.fromRGB(46, 28, 36),
+		Keybind = Color3.fromRGB(46, 28, 36),
+		Input = Color3.fromRGB(36, 22, 28),
+		InputFocused = Color3.fromRGB(20, 12, 16),
+		InputIndicator = Color3.fromRGB(145, 80, 95),
+		InputIndicatorFocus = Color3.fromRGB(255, 110, 80),
+		Dialog = Color3.fromRGB(28, 18, 22),
+		DialogHolder = Color3.fromRGB(20, 12, 16),
+		DialogHolderLine = Color3.fromRGB(60, 32, 38),
+		DialogButton = Color3.fromRGB(40, 24, 30),
+		DialogButtonBorder = Color3.fromRGB(80, 45, 58),
+		DialogBorder = Color3.fromRGB(68, 40, 50),
+		DialogInput = Color3.fromRGB(36, 22, 28),
+		DialogInputLine = Color3.fromRGB(110, 60, 75),
+		Text = Color3.fromRGB(255, 245, 245),
+		SubText = Color3.fromRGB(200, 160, 170),
+		Hover = Color3.fromRGB(58, 32, 40),
+		HoverChange = 0.05,
 	},
-	Grape = {
-		Name = "Grape",
-		Accent = Color3.fromRGB(183, 176, 223),
-		AcrylicMain = Color3.fromRGB(0, 0, 0),
-		AcrylicBorder = Color3.fromRGB(20, 20, 20),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(6, 0, 16), Color3.fromRGB(6, 0, 16)),
-		AcrylicNoise = 1,
-		TitleBarLine = Color3.fromRGB(25, 25, 25),
-		Tab = Color3.fromRGB(40, 40, 40),
-		Element = Color3.fromRGB(15, 15, 15),
-		ElementBorder = Color3.fromRGB(6, 0, 16),
-		InElementBorder = Color3.fromRGB(40, 40, 40),
-		ElementTransparency = 1,
-		ToggleSlider = Color3.fromRGB(255, 255, 255),
-		ToggleToggled = Color3.fromRGB(19, 16, 36),
-		SliderRail = Color3.fromRGB(40, 40, 40),
-		DropdownFrame = Color3.fromRGB(20, 20, 20),
-		DropdownHolder = Color3.fromRGB(12, 0, 34),
-		DropdownBorder = Color3.fromRGB(6, 0, 16),
-		DropdownOption = Color3.fromRGB(40, 40, 40),
-		Keybind = Color3.fromRGB(40, 40, 40),
-		Input = Color3.fromRGB(40, 40, 40),
-		InputFocused = Color3.fromRGB(6, 0, 16),
-		InputIndicator = Color3.fromRGB(60, 60, 60),
-		InputIndicatorFocus = Color3.fromRGB(255, 255, 255),
-		Dialog = Color3.fromRGB(7, 0, 18),
-		DialogHolder = Color3.fromRGB(7, 0, 18),
-		DialogHolderLine = Color3.fromRGB(7, 0, 18),
-		DialogButton = Color3.fromRGB(13, 0, 33),
-		DialogButtonBorder = Color3.fromRGB(30, 30, 30),
-		DialogBorder = Color3.fromRGB(27, 27, 27),
-		DialogInput = Color3.fromRGB(7, 0, 18),
-		DialogInputLine = Color3.fromRGB(60, 60, 60),
-		Text = Color3.fromRGB(255, 255, 255),
-		SubText = Color3.fromRGB(123, 144, 170),
-		Hover = Color3.fromRGB(40, 40, 40),
-		HoverChange = 0.04
-	},
-	Bloody = {
-		Name = "Bloody",
-		Accent = Color3.fromRGB(144, 0, 0),
-		AcrylicMain = Color3.fromRGB(61, 0, 0),
-		AcrylicBorder = Color3.fromRGB(86, 0, 0),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(90, 0, 0), Color3.fromRGB(100, 0, 0)),
-		AcrylicNoise = 0.92,
-		TitleBarLine = Color3.fromRGB(126, 0, 0),
-		Tab = Color3.fromRGB(134, 0, 0),
-		Element = Color3.fromRGB(156, 0, 0),
-		ElementBorder = Color3.fromRGB(91, 0, 0),
-		InElementBorder = Color3.fromRGB(106, 0, 0),
-		ElementTransparency = 0.86,
-		ToggleSlider = Color3.fromRGB(130, 5, 5),
-		ToggleToggled = Color3.fromRGB(66, 0, 0),
-		SliderRail = Color3.fromRGB(150, 30, 30),
-		DropdownFrame = Color3.fromRGB(150, 30, 30),
-		DropdownHolder = Color3.fromRGB(79, 0, 0),
-		DropdownBorder = Color3.fromRGB(116, 0, 0),
-		DropdownOption = Color3.fromRGB(150, 30, 30),
-		Keybind = Color3.fromRGB(150, 30, 30),
-		Input = Color3.fromRGB(150, 30, 30),
-		InputFocused = Color3.fromRGB(40, 10, 10),
-		InputIndicator = Color3.fromRGB(113, 1, 1),
-		Dialog = Color3.fromRGB(85, 0, 1),
-		DialogHolder = Color3.fromRGB(77, 0, 8),
-		DialogHolderLine = Color3.fromRGB(88, 4, 4),
-		DialogButton = Color3.fromRGB(115, 14, 21),
-		DialogButtonBorder = Color3.fromRGB(83, 0, 1),
-		DialogBorder = Color3.fromRGB(43, 4, 5),
-		DialogInput = Color3.fromRGB(108, 20, 21),
-		DialogInputLine = Color3.fromRGB(91, 1, 1),
-		Text = Color3.fromRGB(240, 240, 240),
-		SubText = Color3.fromRGB(131, 131, 131),
-		Hover = Color3.fromRGB(181, 0, 0),
-		HoverChange = 0.04
-	},
-	Arctic = {
-		Name = "Arctic",
-		Accent = Color3.fromRGB(64, 224, 255),
-		AcrylicMain = Color3.fromRGB(10, 18, 25),
-		AcrylicBorder = Color3.fromRGB(35, 55, 70),
-		AcrylicGradient = ColorSequence.new(Color3.fromRGB(15, 25, 35), Color3.fromRGB(18, 30, 40)),
-		AcrylicNoise = 0.94,
-		TitleBarLine = Color3.fromRGB(45, 70, 90),
-		Tab = Color3.fromRGB(70, 110, 140),
-		Element = Color3.fromRGB(60, 95, 120),
-		ElementBorder = Color3.fromRGB(60, 95, 120),
-		InElementBorder = Color3.fromRGB(70, 110, 140),
-		ElementTransparency = 0.88,
-		ToggleSlider = Color3.fromRGB(90, 140, 180),
-		ToggleToggled = Color3.fromRGB(15, 25, 35),
-		SliderRail = Color3.fromRGB(90, 140, 180),
-		DropdownFrame = Color3.fromRGB(110, 170, 220),
-		DropdownHolder = Color3.fromRGB(30, 45, 60),
-		DropdownBorder = Color3.fromRGB(60, 95, 120),
-		DropdownOption = Color3.fromRGB(90, 140, 180),
-		Keybind = Color3.fromRGB(90, 140, 180),
-		Input = Color3.fromRGB(90, 140, 180),
-		InputFocused = Color3.fromRGB(10, 18, 25),
-		InputIndicator = Color3.fromRGB(130, 200, 255),
-		InputIndicatorFocus = Color3.fromRGB(64, 224, 255),
-		Dialog = Color3.fromRGB(30, 45, 60),
-		DialogHolder = Color3.fromRGB(18, 30, 40),
-		DialogHolderLine = Color3.fromRGB(15, 25, 35),
-		DialogButton = Color3.fromRGB(30, 45, 60),
-		DialogButtonBorder = Color3.fromRGB(45, 70, 90),
-		DialogBorder = Color3.fromRGB(40, 60, 80),
-		DialogInput = Color3.fromRGB(35, 55, 70),
-		DialogInputLine = Color3.fromRGB(110, 170, 220),
-		Text = Color3.fromRGB(240, 250, 255),
-		SubText = Color3.fromRGB(180, 200, 220),
-		Hover = Color3.fromRGB(90, 140, 180),
-		HoverChange = 0.04
+	Aurora = {
+		Name = "Aurora",
+		Accent = Color3.fromRGB(30, 225, 200),
+		AccentGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 255, 180)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 225, 200)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 140, 255)),
+		}),
+		AcrylicMain = Color3.fromRGB(10, 20, 24),
+		AcrylicBorder = Color3.fromRGB(35, 95, 105),
+		AcrylicBorderGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 255, 180)),
+			ColorSequenceKeypoint.new(0.4, Color3.fromRGB(30, 225, 200)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 60, 95)),
+		}),
+		AcrylicGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 38, 48)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(12, 25, 32)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 15, 20)),
+		}),
+		AcrylicNoise = 0.95,
+		TitleBarLine = Color3.fromRGB(25, 55, 65),
+		Tab = Color3.fromRGB(145, 195, 205),
+		Element = Color3.fromRGB(16, 28, 36),
+		ElementBorder = Color3.fromRGB(28, 55, 70),
+		InElementBorder = Color3.fromRGB(48, 90, 115),
+		ElementTransparency = 0.84,
+		ToggleSlider = Color3.fromRGB(145, 195, 205),
+		ToggleToggled = Color3.fromRGB(30, 225, 200),
+		SliderRail = Color3.fromRGB(25, 48, 60),
+		DropdownFrame = Color3.fromRGB(16, 28, 36),
+		DropdownHolder = Color3.fromRGB(10, 20, 24),
+		DropdownBorder = Color3.fromRGB(32, 62, 78),
+		DropdownOption = Color3.fromRGB(22, 38, 48),
+		Keybind = Color3.fromRGB(22, 38, 48),
+		Input = Color3.fromRGB(16, 28, 36),
+		InputFocused = Color3.fromRGB(8, 16, 20),
+		InputIndicator = Color3.fromRGB(50, 110, 130),
+		InputIndicatorFocus = Color3.fromRGB(30, 225, 200),
+		Dialog = Color3.fromRGB(12, 22, 28),
+		DialogHolder = Color3.fromRGB(8, 16, 20),
+		DialogHolderLine = Color3.fromRGB(25, 55, 65),
+		DialogButton = Color3.fromRGB(18, 32, 42),
+		DialogButtonBorder = Color3.fromRGB(35, 75, 95),
+		DialogBorder = Color3.fromRGB(28, 55, 70),
+		DialogInput = Color3.fromRGB(16, 28, 36),
+		DialogInputLine = Color3.fromRGB(48, 90, 115),
+		Text = Color3.fromRGB(240, 255, 255),
+		SubText = Color3.fromRGB(140, 185, 195),
+		Hover = Color3.fromRGB(26, 48, 62),
+		HoverChange = 0.05,
 	}
-
 }
 
 local Library = {
@@ -787,7 +590,117 @@ local Library = {
 	Transparency = true,
 	MinimizeKeybind = nil,
 	MinimizeKey = Enum.KeyCode.LeftControl,
+
+	Sound = false,
+	PlaySound = function() end,
+	SetSound = function() end,
 }
+
+local Icons
+local Molto = nil
+
+task.spawn(function()
+	pcall(function()
+		local src
+		if isfile and isfile("molto_source.lua") then
+			src = readfile("molto_source.lua")
+		end
+		if not (src and #src > 50) then
+			local ok, res = pcall(function()
+				return game:HttpGet("https://molto.pages.dev/source.lua")
+			end)
+			if ok and res and #res > 50 then
+				src = res
+				if writefile then
+					pcall(writefile, "molto_source.lua", src)
+				end
+			end
+		end
+		if src and #src > 50 then
+			local m = loadstring(src)()
+			if m and m.SetProvider then
+				m.SetProvider("lucide")
+			end
+			Molto = m
+			Library.Molto = m
+			Library.Icons = m
+		end
+	end)
+end)
+
+function Library:SetIconProvider(provider)
+	if Library.Molto and Library.Molto.SetProvider then
+		return pcall(Library.Molto.SetProvider, provider)
+	end
+	return false
+end
+
+function Library:GetIcon(Name, Provider)
+	if not Name or Name == "" then return nil end
+	local name = Name
+	local prov = Provider
+	if type(name) == "string" then
+		local p, n = name:match("^([%w%-_]+)[:/]([%w%-_]+)$")
+		if p and n then
+			prov = p
+			name = n
+		end
+	end
+	if Library.Molto and Library.Molto.GetAsset then
+		local ok, res = pcall(Library.Molto.GetAsset, name, prov)
+		if ok and res then return res end
+	end
+	if Icons then
+		if Icons["lucide-" .. tostring(name)] then return Icons["lucide-" .. tostring(name)] end
+		if Icons[tostring(name)] then return Icons[tostring(name)] end
+	end
+	return nil
+end
+
+function Library:ApplyIcon(ImageLabel, IconName, Provider)
+	if not ImageLabel or not IconName or IconName == "" then return end
+
+	local name = IconName
+	local prov = Provider
+
+	if type(name) == "string" then
+		if name:find("^rbxassetid://") or name:find("^http") or name:find("^%d+$") then
+			ImageLabel.Image = name:find("^%d+$") and ("rbxassetid://" .. name) or name
+			ImageLabel.ImageRectSize = Vector2.new(0, 0)
+			ImageLabel.ImageRectOffset = Vector2.new(0, 0)
+			return
+		end
+
+		local p, n = name:match("^([%w%-_]+)[:/]([%w%-_]+)$")
+		if p and n then
+			prov = p
+			name = n
+		end
+	end
+
+	local asset = nil
+	if type(name) == "table" and name.Url then
+		asset = name
+	elseif Library.Molto and Library.Molto.GetAsset then
+		local ok, res = pcall(Library.Molto.GetAsset, name, prov)
+		if ok and res then asset = res end
+	end
+
+	if asset then
+		ImageLabel.Image = asset.Url
+		ImageLabel.ImageRectSize = asset.ImageRectSize
+		ImageLabel.ImageRectOffset = asset.ImageRectOffset
+	else
+		local fallback = Icons and (Icons["lucide-" .. tostring(name)] or Icons[tostring(name)]) or tostring(name)
+		ImageLabel.Image = fallback
+		ImageLabel.ImageRectSize = Vector2.new(0, 0)
+		ImageLabel.ImageRectOffset = Vector2.new(0, 0)
+	end
+end
+
+Library.SetIcon = function(self, ImageLabel, IconName, Provider)
+	Library:ApplyIcon(ImageLabel, IconName, Provider)
+end
 
 local function isMotor(value)
 	local motorType = tostring(value):match("^Motor%((.+)%)$")
@@ -1806,9 +1719,10 @@ function Creator.New(Name, Properties, Children)
 	return Object
 end
 
-function Creator.SpringMotor(Initial, Instance, Prop, IgnoreDialogCheck, ResetOnThemeChange)
+function Creator.SpringMotor(Initial, Instance, Prop, IgnoreDialogCheck, ResetOnThemeChange, SpringConfig)
 	IgnoreDialogCheck = IgnoreDialogCheck or false
 	ResetOnThemeChange = ResetOnThemeChange or false
+	local springSettings = SpringConfig or { frequency = 10, dampingRatio = 0.85 }
 	local Motor = Flipper.SingleMotor.new(Initial)
 	Motor:onStep(function(value)
 		Instance[Prop] = value
@@ -1827,7 +1741,7 @@ function Creator.SpringMotor(Initial, Instance, Prop, IgnoreDialogCheck, ResetOn
 				end
 			end
 		end
-		Motor:setGoal(Flipper.Spring.new(Value, { frequency = 8 }))
+		Motor:setGoal(Flipper.Spring.new(Value, springSettings))
 	end
 
 	return Motor, SetValue
@@ -1839,16 +1753,35 @@ Library.MiniMessageToRichText = MiniMessageToRichText
 
 local New = Creator.New
 
-local safeParent
-if gethui then
-    safeParent = gethui()
-elseif pcall(function() return game:GetService("CoreGui").Name end) then
-    safeParent = game:GetService("CoreGui")
-else
-    safeParent = LocalPlayer:WaitForChild("PlayerGui")
+local safeRoots = {}
+if gethui then pcall(function() table.insert(safeRoots, gethui()) end) end
+pcall(function() table.insert(safeRoots, game:GetService("CoreGui")) end)
+pcall(function() table.insert(safeRoots, LocalPlayer:WaitForChild("PlayerGui")) end)
+
+for _, root in ipairs(safeRoots) do
+    for _, child in ipairs(root:GetChildren()) do
+        if child.Name == "FluentUI" or child.Name == "FluentMinimizer" or child.Name == "FluentBlur" then
+            pcall(function() child:Destroy() end)
+        end
+    end
+end
+local cam = workspace.CurrentCamera
+if cam then
+    for _, child in ipairs(cam:GetChildren()) do
+        if child.Name == "FluentBlur" then
+            pcall(function() child:Destroy() end)
+        end
+    end
 end
 
+local safeParent = safeRoots[1] or game:GetService("CoreGui")
+
 local GUI = New("ScreenGui", {
+	Name = "FluentUI",
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	DisplayOrder = 999999,
+	IgnoreGuiInset = true,
 	Parent = safeParent,
 })
 Library.GUI = GUI
@@ -1933,10 +1866,27 @@ end
 
 local viewportPointToWorld, getOffset = unpack({ viewportPointToWorld, getOffset })
 
+local ws = game:GetService("Workspace")
+if ws.CurrentCamera then
+	for _, child in ipairs(ws.CurrentCamera:GetChildren()) do
+		if child.Name == "FluentBlur" then
+			pcall(function() child:Destroy() end)
+		end
+	end
+end
+pcall(function()
+	local lighting = game:GetService("Lighting")
+	for _, child in ipairs(lighting:GetChildren()) do
+		if child.Name == "FluentDepthOfField" then
+			child:Destroy()
+		end
+	end
+end)
+
 local BlurFolder = Instance.new("Folder")
 BlurFolder.Name = "FluentBlur"
+Library.BlurFolder = BlurFolder
 do
-	local ws = game:GetService("Workspace")
 	local function attachToCurrentCamera()
 		local cam = ws.CurrentCamera
 		if cam and BlurFolder.Parent ~= cam then
@@ -1950,14 +1900,15 @@ end
 local function createAcrylic()
 	local Part = Creator.New("Part", {
 		Name = "Body",
-		Color = Color3.new(0, 0, 0),
+		Color = Color3.new(1, 1, 1),
 		Material = Enum.Material.Glass,
 		Size = Vector3.new(1, 1, 0),
 		Anchored = true,
 		CanCollide = false,
 		Locked = true,
 		CastShadow = false,
-		Transparency = 0.98,
+		Reflectance = 0,
+		Transparency = 1,
 	}, {
 		Creator.New("SpecialMesh", {
 			Name = "Mesh",
@@ -1980,6 +1931,7 @@ function AcrylicBlur()
 			bottomRight = Vector2.new(),
 		}
 		local model = createAcrylic()
+		model.CFrame = CFrame.new(0, -999999, 0)
 		model.Parent = BlurFolder
 
 		local function updatePositions(size, position)
@@ -1988,20 +1940,41 @@ function AcrylicBlur()
 			positions.bottomRight = position + size
 		end
 
+		local lastCamCFrame
+		local lastTopLeft
+		local lastBottomRight
+
 		local function render()
-			local res = game:GetService("Workspace").CurrentCamera
-			if res then
-				res = res.CFrame
-			end
-			local cond = res
-			if not cond then
-				cond = CFrame.new()
+			if Library.Unloaded or not Library.UseAcrylic or not Library.Acrylic or model.Transparency >= 1 or not model.Parent or (Library.Window and (Library.Window.Minimized or not Library.Window.Root or not Library.Window.Root.Visible)) then
+				if model and model.Parent then
+					model.Transparency = 1
+					if model.CFrame.Y > -900000 then
+						model.CFrame = CFrame.new(0, -999999, 0)
+					end
+				end
+				return
 			end
 
-			local camera = cond
+			local cam = game:GetService("Workspace").CurrentCamera
+			if not cam then
+				return
+			end
+			local camera = cam.CFrame
+
 			local topLeft = positions.topLeft
 			local topRight = positions.topRight
 			local bottomRight = positions.bottomRight
+
+			if lastCamCFrame and lastTopLeft and lastBottomRight
+				and camera == lastCamCFrame
+				and topLeft == lastTopLeft
+				and bottomRight == lastBottomRight then
+				return
+			end
+
+			lastCamCFrame = camera
+			lastTopLeft = topLeft
+			lastBottomRight = bottomRight
 
 			local topLeft3D = viewportPointToWorld(topLeft, distance)
 			local topRight3D = viewportPointToWorld(topRight, distance)
@@ -2015,23 +1988,16 @@ function AcrylicBlur()
 		end
 
 		local function onChange(rbx)
-			local offset = getOffset()
-			local size = rbx.AbsoluteSize - Vector2.new(offset, offset)
-			local position = rbx.AbsolutePosition + Vector2.new(offset / 2, offset / 2)
+			local size = rbx.AbsoluteSize
+			local position = rbx.AbsolutePosition
 
 			updatePositions(size, position)
-			task.spawn(render)
+			render()
 		end
 
 		local function renderOnChange()
-			local camera = game:GetService("Workspace").CurrentCamera
-			if not camera then
-				return
-			end
-			table.insert(cleanups, camera:GetPropertyChangedSignal("CFrame"):Connect(render))
-			table.insert(cleanups, camera:GetPropertyChangedSignal("ViewportSize"):Connect(render))
-			table.insert(cleanups, camera:GetPropertyChangedSignal("FieldOfView"):Connect(render))
-			task.spawn(render)
+			table.insert(cleanups, RunService.RenderStepped:Connect(render))
+			render()
 		end
 
 		model.Destroying:Connect(function()
@@ -2040,6 +2006,7 @@ function AcrylicBlur()
 					item:Disconnect()
 				end)
 			end
+			table.clear(cleanups)
 		end)
 
 		renderOnChange()
@@ -2065,13 +2032,24 @@ function AcrylicBlur()
 		end)
 
 		Blur.AddParent = function(Parent)
-			Creator.AddSignal(Parent:GetPropertyChangedSignal("Visible"), function()
-				Blur.SetVisibility(Parent.Visible)
-			end)
+			Blur.Parent = Parent
+			local function update()
+				local isVis = Parent.Visible and (Library.Acrylic ~= false) and (Library.UseAcrylic ~= false)
+				if Library.Window and Parent == Library.Window.Root and Library.Window.Minimized then
+					isVis = false
+				end
+				Blur.SetVisibility(isVis)
+			end
+			update()
+			Creator.AddSignal(Parent:GetPropertyChangedSignal("Visible"), update)
 		end
 
 		Blur.SetVisibility = function(Value)
-			model.Transparency = Value and 0.98 or 1
+			local actual = Value and (Library.Acrylic ~= false) and (Library.UseAcrylic ~= false)
+			model.Transparency = actual and ((Library.Theme == "Glass") and 0.85 or 0.98) or 1
+			if not actual then
+				model.CFrame = CFrame.new(0, -999999, 0)
+			end
 		end
 
 		Blur.Frame = comp
@@ -2178,11 +2156,28 @@ function AcrylicPaint()
 					CornerRadius = UDim.new(0, 8),
 				}),
 				New("UIStroke", {
-					Transparency = 0.5,
-					Thickness = 1,
+					Transparency = 0.35,
+					Thickness = 1.2,
 					ThemeTag = {
 						Color = "AcrylicBorder",
 					},
+				}, {
+					New("UIGradient", {
+						Rotation = 90,
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+							ColorSequenceKeypoint.new(0.35, Color3.fromRGB(180, 180, 180)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 50, 50)),
+						}),
+						ThemeTag = {
+							Color = "AcrylicBorderGradient",
+						},
+						Transparency = NumberSequence.new({
+							NumberSequenceKeypoint.new(0, 0.15),
+							NumberSequenceKeypoint.new(0.4, 0.35),
+							NumberSequenceKeypoint.new(1, 0.65),
+						}),
+					}),
 				}),
 			}),
 		})
@@ -2205,50 +2200,80 @@ local Acrylic = {
 	AcrylicBlur = AcrylicBlur(),
 	CreateAcrylic = createAcrylic,
 	AcrylicPaint = AcrylicPaint(),
+	Enable = function() end,
+	Disable = function() end,
+	Destroy = function() end,
 }
 
 function Acrylic.init()
+	if Acrylic.BaseEffect and Acrylic.BaseEffect.Parent then
+		return
+	end
+
+	pcall(function()
+		local lighting = game:GetService("Lighting")
+		for _, child in ipairs(lighting:GetChildren()) do
+			if child:IsA("DepthOfFieldEffect") and (child.Name == "FluentDepthOfField" or (child.InFocusRadius <= 0.2 and child.NearIntensity >= 0.9)) then
+				child:Destroy()
+			end
+		end
+	end)
+
 	local baseEffect = Instance.new("DepthOfFieldEffect")
+	baseEffect.Name = "FluentDepthOfField"
 	baseEffect.FarIntensity = 0
 	baseEffect.InFocusRadius = 0.1
 	baseEffect.NearIntensity = 1
+	Acrylic.BaseEffect = baseEffect
 
 	local depthOfFieldDefaults = {}
 
 	function Acrylic.Enable()
 		for _, effect in pairs(depthOfFieldDefaults) do
-			effect.Enabled = false
+			pcall(function() effect.Enabled = false end)
 		end
 		baseEffect.Parent = game:GetService("Lighting")
 	end
 
 	function Acrylic.Disable()
-		for _, effect in pairs(depthOfFieldDefaults) do
-			effect.Enabled = effect.enabled
+		for effect, data in pairs(depthOfFieldDefaults) do
+			pcall(function() effect.Enabled = data.enabled end)
 		end
 		baseEffect.Parent = nil
 	end
 
+	function Acrylic.Destroy()
+		Acrylic.Disable()
+		pcall(function() baseEffect:Destroy() end)
+		Acrylic.BaseEffect = nil
+		table.clear(depthOfFieldDefaults)
+		pcall(function()
+			local lighting = game:GetService("Lighting")
+			for _, child in ipairs(lighting:GetChildren()) do
+				if child:IsA("DepthOfFieldEffect") and (child.Name == "FluentDepthOfField" or (child.InFocusRadius <= 0.2 and child.NearIntensity >= 0.9)) then
+					child:Destroy()
+				end
+			end
+		end)
+	end
+
 	local function registerDefaults()
 		local function register(object)
-			if object:IsA("DepthOfFieldEffect") then
-				depthOfFieldDefaults[object] = { enabled = object.Enabled }
+			if object:IsA("DepthOfFieldEffect") and object ~= baseEffect then
+				if object.InFocusRadius <= 0.2 and object.NearIntensity >= 0.9 then
+					pcall(function() object:Destroy() end)
+				else
+					depthOfFieldDefaults[object] = { enabled = object.Enabled }
+				end
 			end
 		end
 
 		for _, child in pairs(game:GetService("Lighting"):GetChildren()) do
 			register(child)
 		end
-
-		if game:GetService("Workspace").CurrentCamera then
-			for _, child in pairs(game:GetService("Workspace").CurrentCamera:GetChildren()) do
-				register(child)
-			end
-		end
 	end
 
 	registerDefaults()
-	Acrylic.Enable()
 end
 
 local Components = {
@@ -2274,6 +2299,7 @@ Components.Element = (function()
 			Text = Title,
 			TextColor3 = Color3.fromRGB(240, 240, 240),
 			TextSize = 13,
+			TextTruncate = Enum.TextTruncate.AtEnd,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Size = UDim2.new(1, 0, 0, 14),
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -2298,15 +2324,7 @@ Components.Element = (function()
 		})
 
 		if Options and Options.Icon then
-			local iconImage = Options.Icon
-			pcall(function()
-				if Library and Library.GetIcon then
-					local resolved = Library:GetIcon(Options.Icon)
-					if resolved then iconImage = resolved end
-				end
-			end)
 			Element.IconImage = New("ImageLabel", {
-				Image = iconImage,
 				Size = UDim2.fromOffset(16, 16),
 				BackgroundTransparency = 1,
 				LayoutOrder = 1,
@@ -2314,6 +2332,7 @@ Components.Element = (function()
 					ImageColor3 = "Text",
 				},
 			})
+			Library:ApplyIcon(Element.IconImage, Options.Icon)
 			Element.IconImage.Parent = Element.Header
 		end
 
@@ -2347,8 +2366,8 @@ Components.Element = (function()
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 			}),
 			New("UIPadding", {
-				PaddingBottom = UDim.new(0, 13),
-				PaddingTop = UDim.new(0, 13),
+				PaddingBottom = UDim.new(0, Mobile and 15 or 13),
+				PaddingTop = UDim.new(0, Mobile and 15 or 13),
 			}),
 			Element.Header,
 			Element.DescLabel,
@@ -2489,6 +2508,30 @@ Components.Element = (function()
 			return Element.DescLabel.Text
 		end
 
+		function Element:SetRightOffset(offset)
+			Element.LabelHolder.Size = UDim2.new(1, -offset, 0, 0)
+		end
+
+		function Element:SetIcon(newIcon)
+			if not Element.IconImage then
+				Element.IconImage = New("ImageLabel", {
+					Size = UDim2.fromOffset(16, 16),
+					BackgroundTransparency = 1,
+					LayoutOrder = 1,
+					ThemeTag = {
+						ImageColor3 = "Text",
+					},
+				})
+				Element.IconImage.Parent = Element.Header
+			end
+			Library:ApplyIcon(Element.IconImage, newIcon)
+			if Element.DescIconImage then
+				Element.DescIconImage.Image = Element.IconImage.Image
+				Element.DescIconImage.ImageRectSize = Element.IconImage.ImageRectSize
+				Element.DescIconImage.ImageRectOffset = Element.IconImage.ImageRectOffset
+			end
+		end
+
 		function Element:Destroy()
 			Element.Frame:Destroy()
 		end
@@ -2515,20 +2558,33 @@ Components.Element = (function()
 				Element.Frame,
 				"BackgroundTransparency",
 				false,
-				true
+				true,
+				{ frequency = 12, dampingRatio = 0.85 }
+			)
+			local StrokeMotor, SetStrokeTransparency = Creator.SpringMotor(
+				0.5,
+				Element.Border,
+				"Transparency",
+				false,
+				false,
+				{ frequency = 12, dampingRatio = 0.85 }
 			)
 
 			Creator.AddSignal(Element.Frame.MouseEnter, function()
 				SetTransparency(Creator.GetThemeProperty("ElementTransparency") - Creator.GetThemeProperty("HoverChange"))
+				SetStrokeTransparency(0.2)
 			end)
 			Creator.AddSignal(Element.Frame.MouseLeave, function()
 				SetTransparency(Creator.GetThemeProperty("ElementTransparency"))
+				SetStrokeTransparency(0.5)
 			end)
 			Creator.AddSignal(Element.Frame.MouseButton1Down, function()
 				SetTransparency(Creator.GetThemeProperty("ElementTransparency") + Creator.GetThemeProperty("HoverChange"))
+				SetStrokeTransparency(0.1)
 			end)
 			Creator.AddSignal(Element.Frame.MouseButton1Up, function()
 				SetTransparency(Creator.GetThemeProperty("ElementTransparency") - Creator.GetThemeProperty("HoverChange"))
+				SetStrokeTransparency(0.2)
 			end)
 		end
 
@@ -2538,8 +2594,10 @@ end)()
 Components.Section = (function()
 	local New = Creator.New
 
-	return function(Title, Parent, Icon)
+	return function(Title, Parent, Icon, Collapsible, DefaultCollapsed)
 		local Section = {}
+		local isCollapsible = Collapsible == true
+		local isCollapsed = isCollapsible and (DefaultCollapsed == true) or false
 
 		Section.Layout = New("UIListLayout", {
 			Padding = UDim.new(0, 5),
@@ -2549,14 +2607,45 @@ Components.Section = (function()
 			Size = UDim2.new(1, 0, 0, 26),
 			Position = UDim2.fromOffset(0, 24),
 			BackgroundTransparency = 1,
+			Visible = not isCollapsed,
 		}, {
 			Section.Layout,
 		})
 
-		local SectionHeader = New("Frame", {
+		local SectionTitleLabel = New("TextLabel", {
+			RichText = true,
+			Text = Title,
+			TextTransparency = 0,
+			FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
+			TextSize = 18,
+			TextXAlignment = "Left",
+			TextYAlignment = "Center",
+			Size = UDim2.fromScale(0, 1),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1,
+			LayoutOrder = 2,
+			ThemeTag = {
+				TextColor3 = "Text",
+			},
+		})
+
+		local ChevronIcon = isCollapsible and New("ImageLabel", {
+			Image = "rbxassetid://10709790948",
+			Size = UDim2.fromOffset(16, 16),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(1, 0.5),
+			BackgroundTransparency = 1,
+			Rotation = isCollapsed and -90 or 0,
+			ThemeTag = {
+				ImageColor3 = "SubText",
+			},
+		}) or nil
+
+		local SectionHeader = New("TextButton", {
 			Size = UDim2.new(1, -16, 0, 18),
 			Position = UDim2.fromOffset(0, 2),
 			BackgroundTransparency = 1,
+			Text = "",
 		}, {
 			New("UIListLayout", {
 				Padding = UDim.new(0, 5),
@@ -2564,31 +2653,20 @@ Components.Section = (function()
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 			}),
-			Icon and New("ImageLabel", {
-				Image = Icon,
-				Size = UDim2.fromOffset(16, 16),
-				BackgroundTransparency = 1,
-				LayoutOrder = 1,
-				ThemeTag = {
-					ImageColor3 = "Text",
-				},
-			}) or nil,
-			New("TextLabel", {
-				RichText = true,
-				Text = Title,
-				TextTransparency = 0,
-				FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
-				TextSize = 18,
-				TextXAlignment = "Left",
-				TextYAlignment = "Center",
-				Size = UDim2.fromScale(0, 1),
-				AutomaticSize = Enum.AutomaticSize.X,
-				BackgroundTransparency = 1,
-				LayoutOrder = 2,
-				ThemeTag = {
-					TextColor3 = "Text",
-				},
-			}),
+			(Icon and Icon ~= "") and (function()
+				local img = New("ImageLabel", {
+					Size = UDim2.fromOffset(16, 16),
+					BackgroundTransparency = 1,
+					LayoutOrder = 1,
+					ThemeTag = {
+						ImageColor3 = "Text",
+					},
+				})
+				Library:ApplyIcon(img, Icon)
+				return img
+			end)() or nil,
+			SectionTitleLabel,
+			ChevronIcon,
 		})
 
 		Section.Root = New("Frame", {
@@ -2601,11 +2679,42 @@ Components.Section = (function()
 			Section.Container,
 		})
 
-		Creator.AddSignal(Section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-			Section.Container.Size = UDim2.new(1, 0, 0, Section.Layout.AbsoluteContentSize.Y)
-			Section.Root.Size = UDim2.new(1, 0, 0, Section.Layout.AbsoluteContentSize.Y + 25)
-		end)
+		local function updateSizes()
+			if isCollapsed then
+				Section.Container.Visible = false
+				Section.Container.Size = UDim2.new(1, 0, 0, 0)
+				Section.Root.Size = UDim2.new(1, 0, 0, 24)
+			else
+				Section.Container.Visible = true
+				Section.Container.Size = UDim2.new(1, 0, 0, Section.Layout.AbsoluteContentSize.Y)
+				Section.Root.Size = UDim2.new(1, 0, 0, Section.Layout.AbsoluteContentSize.Y + 25)
+			end
+		end
 
+		Creator.AddSignal(Section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"), updateSizes)
+
+		function Section:SetCollapsed(collapsed)
+			if not isCollapsible then return end
+			isCollapsed = collapsed
+			if ChevronIcon then
+				TweenService:Create(ChevronIcon, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Rotation = isCollapsed and -90 or 0
+				}):Play()
+			end
+			updateSizes()
+		end
+
+		function Section:Toggle()
+			Section:SetCollapsed(not isCollapsed)
+		end
+
+		if isCollapsible then
+			Creator.AddSignal(SectionHeader.MouseButton1Click, function()
+				Section:Toggle()
+			end)
+		end
+
+		updateSizes()
 
 		if Library.Window and Library.Window.RegisterElement then
 			Library.Window.RegisterElement(Section.Root, Title, "Section")
@@ -2660,15 +2769,24 @@ Components.Tab = (function()
 			Type = "Tab",
 		}
 
-		if not fischbypass then 
-			if Library:GetIcon(Icon) then
-				Icon = Library:GetIcon(Icon)
-			end
+		local hasIcon = (Icon ~= nil and Icon ~= "" and not fischbypass)
 
-			if Icon == "" or nil then
-				Icon = nil
-			end
-		end
+		local tabIconLabel = hasIcon and (function()
+			local img = New("ImageLabel", {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.fromOffset(16, 16),
+				Position = UDim2.new(0, 8, 0.5, 0),
+				BackgroundTransparency = 1,
+				ZIndex = 11,
+				ThemeTag = {
+					ImageColor3 = "Text",
+				},
+			})
+			Library:ApplyIcon(img, Icon)
+			return img
+		end)() or nil
+
+		Tab.IconImage = tabIconLabel
 
 		Tab.Frame = New("TextButton", {
 			Size = UDim2.new(1, 0, 0, 34),
@@ -2680,11 +2798,11 @@ Components.Tab = (function()
 			},
 		}, {
 			New("UICorner", {
-				CornerRadius = UDim.new(0, 6),
+				CornerRadius = UDim.new(0, 8),
 			}),
 			New("TextLabel", {
 				AnchorPoint = Vector2.new(0, 0.5),
-				Position = not fischbypass and Icon and UDim2.new(0, 30, 0.5, 0) or UDim2.new(0, 12, 0.5, 0),
+				Position = hasIcon and UDim2.new(0, 30, 0.5, 0) or UDim2.new(0, 12, 0.5, 0),
 				Text = Title,
 				RichText = true,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -2704,17 +2822,7 @@ Components.Tab = (function()
 					TextColor3 = "Text",
 				},
 			}),
-			New("ImageLabel", {
-				AnchorPoint = Vector2.new(0, 0.5),
-				Size = UDim2.fromOffset(16, 16),
-				Position = UDim2.new(0, 8, 0.5, 0),
-				BackgroundTransparency = 1,
-				Image = Icon and Icon or nil,
-				ZIndex = 11,
-				ThemeTag = {
-					ImageColor3 = "Text",
-				},
-			}),
+			tabIconLabel,
 		})
 
 		local ContainerLayout = New("UIListLayout", {
@@ -2853,16 +2961,19 @@ Components.Tab = (function()
 				self.SubTabContainerHolder = SubTabContainerHolder
 			end
 
-			local SubTabIcon = Icon
-			if not fischbypass then 
-				if Library:GetIcon(Icon) then
-					SubTabIcon = Library:GetIcon(Icon)
-				end
-
-				if SubTabIcon == "" or nil then
-					SubTabIcon = nil
-				end
-			end
+			local hasSubIcon = (Icon ~= nil and Icon ~= "" and not fischbypass)
+			local subTabIconLabel = hasSubIcon and (function()
+				local img = New("ImageLabel", {
+					Size = UDim2.fromOffset(16, 16),
+					BackgroundTransparency = 1,
+					LayoutOrder = 1,
+					ThemeTag = {
+						ImageColor3 = "Text",
+					},
+				})
+				Library:ApplyIcon(img, Icon)
+				return img
+			end)() or nil
 
 			local SubTabButton = New("TextButton", {
 				Size = UDim2.new(0, 0, 0, 32),
@@ -2897,15 +3008,7 @@ Components.Tab = (function()
 					PaddingTop = UDim.new(0, 6),
 					PaddingBottom = UDim.new(0, 6),
 				}),
-				SubTabIcon and New("ImageLabel", {
-					Size = UDim2.fromOffset(16, 16),
-					BackgroundTransparency = 1,
-					Image = SubTabIcon,
-					LayoutOrder = 1,
-					ThemeTag = {
-						ImageColor3 = "Text",
-					},
-				}) or nil,
+				subTabIconLabel,
 				New("TextLabel", {
 					Text = Title,
 					RichText = true,
@@ -3042,23 +3145,36 @@ Components.Tab = (function()
 				self:SelectSubTab(SubTabIndex)
 			end
 
-			function SubTab:AddSection(SectionTitle, SectionIcon)
+			function SubTab:AddSection(SectionTitle, SectionIcon, Collapsible, DefaultCollapsed)
+				local Title = SectionTitle
+				local Icon = SectionIcon
+				local isCollapsible = Collapsible
+				local defaultCollapsed = DefaultCollapsed
+
+				if type(SectionTitle) == "table" then
+					Title = SectionTitle.Title or "Section"
+					Icon = SectionTitle.Icon or SectionIcon
+					isCollapsible = SectionTitle.Collapsible
+					defaultCollapsed = SectionTitle.Default
+				end
+
 				local Section = { Type = "Section" }
 
-				local Icon = SectionIcon
-				if not fischbypass then 
+				if not fischbypass and Icon then 
 					if Library:GetIcon(Icon) then
 						Icon = Library:GetIcon(Icon)
 					end
-
-					if Icon == "" or nil then
-						Icon = nil
-					end
+					if Icon == "" then Icon = nil end
 				end
 
-				local SectionFrame = Components.Section(SectionTitle, SubTab.Container, Icon)
+				local SectionFrame = Components.Section(Title, SubTab.Container, Icon, isCollapsible, defaultCollapsed)
 				Section.Container = SectionFrame.Container
 				Section.ScrollFrame = SubTab.Container
+				Section.Frame = SectionFrame.Root
+				Section.SetCollapsed = function(self, val) SectionFrame:SetCollapsed(val) end
+				Section.Toggle = function(self) SectionFrame:Toggle() end
+				Section.Collapse = function(self) SectionFrame:SetCollapsed(true) end
+				Section.Expand = function(self) SectionFrame:SetCollapsed(false) end
 
 				setmetatable(Section, Elements)
 				return Section
@@ -3139,17 +3255,17 @@ Components.Tab = (function()
 				task.wait()
 
 				pcall(function()
-					OldSubTab.XMotor:setGoal(Spring(-Direction * SlideDistance, { frequency = 4, dampingRatio = 0.7 }))
-					OldSubTab.TransparencyMotor:setGoal(Spring(1, { frequency = 4, dampingRatio = 0.7 }))
+					OldSubTab.XMotor:setGoal(Spring(-Direction * SlideDistance, { frequency = 7.5, dampingRatio = 0.82 }))
+					OldSubTab.TransparencyMotor:setGoal(Spring(1, { frequency = 7.5, dampingRatio = 0.82 }))
 				end)
 
 				pcall(function()
-					NewSubTab.XMotor:setGoal(Spring(0, { frequency = 4, dampingRatio = 0.7 }))
-					NewSubTab.TransparencyMotor:setGoal(Spring(0, { frequency = 4, dampingRatio = 0.7 }))
+					NewSubTab.XMotor:setGoal(Spring(0, { frequency = 7.5, dampingRatio = 0.82 }))
+					NewSubTab.TransparencyMotor:setGoal(Spring(0, { frequency = 7.5, dampingRatio = 0.82 }))
 				end)
 
 				task.spawn(function()
-					task.wait(0.5)
+					task.wait(0.28)
 					if self.SelectedSubTab == SubTabIndex and self.SubTabs[PreviousSubTab] then
 						local OldContainer = self.SubTabs[PreviousSubTab].ContainerAnim
 						local OldSubTab = self.SubTabs[PreviousSubTab]
@@ -3183,27 +3299,40 @@ Components.Tab = (function()
 			end
 		end
 
-		function Tab:AddSection(SectionTitle, SectionIcon)
+		function Tab:AddSection(SectionTitle, SectionIcon, Collapsible, DefaultCollapsed)
+			local Title = SectionTitle
+			local Icon = SectionIcon
+			local isCollapsible = Collapsible
+			local defaultCollapsed = DefaultCollapsed
+
+			if type(SectionTitle) == "table" then
+				Title = SectionTitle.Title or "Section"
+				Icon = SectionTitle.Icon or SectionIcon
+				isCollapsible = SectionTitle.Collapsible
+				defaultCollapsed = SectionTitle.Default
+			end
+
 			if self.SelectedSubTab > 0 and self.SubTabs[self.SelectedSubTab] then
-				return self.SubTabs[self.SelectedSubTab]:AddSection(SectionTitle, SectionIcon)
+				return self.SubTabs[self.SelectedSubTab]:AddSection(Title, Icon, isCollapsible, defaultCollapsed)
 			end
 
 			local Section = { Type = "Section" }
 
-			local Icon = SectionIcon
-			if not fischbypass then 
+			if not fischbypass and Icon then 
 				if Library:GetIcon(Icon) then
 					Icon = Library:GetIcon(Icon)
 				end
-
-				if Icon == "" or nil then
-					Icon = nil
-				end
+				if Icon == "" then Icon = nil end
 			end
 
-			local SectionFrame = Components.Section(SectionTitle, Tab.Container, Icon)
+			local SectionFrame = Components.Section(Title, Tab.Container, Icon, isCollapsible, defaultCollapsed)
 			Section.Container = SectionFrame.Container
 			Section.ScrollFrame = Tab.Container
+			Section.Frame = SectionFrame.Root
+			Section.SetCollapsed = function(self, val) SectionFrame:SetCollapsed(val) end
+			Section.Toggle = function(self) SectionFrame:Toggle() end
+			Section.Collapse = function(self) SectionFrame:SetCollapsed(true) end
+			Section.Expand = function(self) SectionFrame:SetCollapsed(false) end
 
 			setmetatable(Section, Elements)
 			return Section
@@ -3245,7 +3374,7 @@ Components.Tab = (function()
 		TabModule.Tabs[Tab].Selected = true
 
 		Window.TabDisplay.Text = TabModule.Tabs[Tab].Name
-		Window.SelectorPosMotor:setGoal(Spring(TabModule:GetCurrentTabPos(), { frequency = 6 }))
+		Window.SelectorPosMotor:setGoal(Spring(TabModule:GetCurrentTabPos(), { frequency = 12, dampingRatio = 0.85 }))
 
 		if PreviousTab > 0 and PreviousTab ~= Tab and TabModule.Tabs[PreviousTab] and TabModule.Tabs[Tab] then
 			local OldContainer = TabModule.Tabs[PreviousTab].ContainerAnim
@@ -3278,48 +3407,41 @@ Components.Tab = (function()
 				end
 			end
 
+			local subtleSlide = math.clamp(Direction * 24, -30, 30)
+
 			OldContainer.Visible = true
 			OldContainer.Position = UDim2.fromOffset(0, 0)
 			OldContainer.GroupTransparency = 0
-			pcall(function()
-				OldTab.ContainerXMotor:setGoal(Instant(0))
-				OldTab.ContainerTransparencyMotor:setGoal(Instant(0))
-			end)
 
 			NewContainer.Visible = true
-			NewContainer.Position = UDim2.fromOffset(Direction * SlideDistance, 0)
+			NewContainer.Position = UDim2.fromOffset(subtleSlide, 0)
 			NewContainer.GroupTransparency = 1
 			pcall(function()
-				NewTab.ContainerXMotor:setGoal(Instant(Direction * SlideDistance))
+				NewTab.ContainerXMotor:setGoal(Instant(subtleSlide))
 				NewTab.ContainerTransparencyMotor:setGoal(Instant(1))
 			end)
 
-			task.wait()
-
-			pcall(function()
-				OldTab.ContainerXMotor:setGoal(Spring(-Direction * SlideDistance, { frequency = 4, dampingRatio = 0.7 }))
-				OldTab.ContainerTransparencyMotor:setGoal(Spring(1, { frequency = 4, dampingRatio = 0.7 }))
-			end)
-
-			pcall(function()
-				NewTab.ContainerXMotor:setGoal(Spring(0, { frequency = 4, dampingRatio = 0.7 }))
-				NewTab.ContainerTransparencyMotor:setGoal(Spring(0, { frequency = 4, dampingRatio = 0.7 }))
-			end)
-
 			TabModule.AnimationTask = task.spawn(function()
-				task.wait(0.5)
+				pcall(function()
+					OldTab.ContainerXMotor:setGoal(Spring(-subtleSlide, { frequency = 12, dampingRatio = 0.88 }))
+					OldTab.ContainerTransparencyMotor:setGoal(Spring(1, { frequency = 12, dampingRatio = 0.88 }))
+					NewTab.ContainerXMotor:setGoal(Spring(0, { frequency = 12, dampingRatio = 0.88 }))
+					NewTab.ContainerTransparencyMotor:setGoal(Spring(0, { frequency = 12, dampingRatio = 0.88 }))
+				end)
+
+				task.wait(0.2)
 				if TabModule.CurrentAnimationTab == Tab and TabModule.Tabs[PreviousTab] then
-					local OldContainer = TabModule.Tabs[PreviousTab].ContainerAnim
-					local OldTab = TabModule.Tabs[PreviousTab]
-					if OldContainer and OldContainer.Parent then
-						OldContainer.Visible = false
-						OldContainer.Position = UDim2.fromOffset(0, 0)
-						OldContainer.GroupTransparency = 0
+					local oCont = TabModule.Tabs[PreviousTab].ContainerAnim
+					local oTab = TabModule.Tabs[PreviousTab]
+					if oCont and oCont.Parent then
+						oCont.Visible = false
+						oCont.Position = UDim2.fromOffset(0, 0)
+						oCont.GroupTransparency = 0
 					end
-					if OldTab and OldTab.ContainerXMotor and OldTab.ContainerTransparencyMotor then
+					if oTab and oTab.ContainerXMotor and oTab.ContainerTransparencyMotor then
 						pcall(function()
-							OldTab.ContainerXMotor:setGoal(Instant(0))
-							OldTab.ContainerTransparencyMotor:setGoal(Instant(0))
+							oTab.ContainerXMotor:setGoal(Instant(0))
+							oTab.ContainerTransparencyMotor:setGoal(Instant(0))
 						end)
 					end
 					TabModule.AnimationTask = nil
@@ -3617,17 +3739,31 @@ Components.Notification = (function()
 
 		NewNotification.AcrylicPaint = Acrylic.AcrylicPaint()
 
+		local hasIcon = (Config.Icon ~= nil and Config.Icon ~= "" and not fischbypass)
+		local notifIcon = hasIcon and (function()
+			local img = New("ImageLabel", {
+				Size = UDim2.fromOffset(16, 16),
+				Position = UDim2.new(0, 14, 0, 15),
+				BackgroundTransparency = 1,
+				ThemeTag = {
+					ImageColor3 = "Accent",
+				},
+			})
+			Library:ApplyIcon(img, Config.Icon)
+			return img
+		end)() or nil
+
 		NewNotification.Title = New("TextLabel", {
-			Position = UDim2.new(0, 14, 0, 17),
+			Position = UDim2.new(0, hasIcon and 36 or 14, 0, 17),
 			Text = Config.Title,
 			RichText = true,
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			TextTransparency = 0,
-			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium),
 			TextSize = 13,
 			TextXAlignment = "Left",
 			TextYAlignment = "Center",
-			Size = UDim2.new(1, -12, 0, 12),
+			Size = UDim2.new(1, hasIcon and -48 or -26, 0, 12),
 			TextWrapped = true,
 			BackgroundTransparency = 1,
 			ThemeTag = {
@@ -3639,7 +3775,7 @@ Components.Notification = (function()
 			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
 			Text = Config.Content,
 			TextColor3 = Color3.fromRGB(240, 240, 240),
-			TextSize = 14,
+			TextSize = 13,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Size = UDim2.new(1, 0, 0, 14),
@@ -3654,8 +3790,8 @@ Components.Notification = (function()
 		NewNotification.SubContentLabel = New("TextLabel", {
 			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
 			Text = Config.SubContent,
-			TextColor3 = Color3.fromRGB(240, 240, 240),
-			TextSize = 14,
+			TextColor3 = Color3.fromRGB(200, 200, 200),
+			TextSize = 12,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Size = UDim2.new(1, 0, 0, 14),
@@ -3702,16 +3838,78 @@ Components.Notification = (function()
 			}),
 		})
 
+		local ButtonsHolder
+		local hasButtons = type(Config.Buttons) == "table" and #Config.Buttons > 0
+		if hasButtons then
+			local btnList = {
+				New("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					HorizontalAlignment = Enum.HorizontalAlignment.Right,
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					Padding = UDim.new(0, 8),
+				})
+			}
+			for idx, btnData in ipairs(Config.Buttons) do
+				local btn = New("TextButton", {
+					Text = btnData.Title or "Button",
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium),
+					TextSize = 12,
+					Size = UDim2.fromOffset(math.max(64, #tostring(btnData.Title or "") * 8 + 16), 26),
+					BackgroundTransparency = 0.8,
+					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+					AutoButtonColor = false,
+					ThemeTag = {
+						TextColor3 = "Text",
+						BackgroundColor3 = "DialogButton",
+					},
+				}, {
+					New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+					New("UIStroke", {
+						Transparency = 0.6,
+						ThemeTag = { Color = "DialogButtonBorder" },
+					}),
+				})
+				Creator.AddSignal(btn.MouseButton1Click, function()
+					if btnData.Callback then
+						pcall(btnData.Callback)
+					end
+					NewNotification:Close()
+				end)
+				table.insert(btnList, btn)
+			end
+			ButtonsHolder = New("Frame", {
+				Size = UDim2.new(1, -28, 0, 26),
+				Position = UDim2.new(0, 14, 1, -32),
+				BackgroundTransparency = 1,
+			}, btnList)
+		end
+
+		local ProgressBar = Config.Duration and New("Frame", {
+			Size = UDim2.new(1, 0, 0, 2),
+			Position = UDim2.new(0, 0, 1, -2),
+			BackgroundTransparency = 0.35,
+			BackgroundColor3 = Color3.fromRGB(96, 205, 255),
+			BorderSizePixel = 0,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+		}) or nil
+
+		local rootChildren = {
+			NewNotification.AcrylicPaint.Frame,
+			notifIcon,
+			NewNotification.Title,
+			NewNotification.CloseButton,
+			NewNotification.LabelHolder,
+			ButtonsHolder,
+			ProgressBar,
+		}
+
 		NewNotification.Root = New("Frame", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 1, 0),
 			Position = UDim2.fromScale(1, 0),
-		}, {
-			NewNotification.AcrylicPaint.Frame,
-			NewNotification.Title,
-			NewNotification.CloseButton,
-			NewNotification.LabelHolder,
-		})
+		}, rootChildren)
 
 		if Config.Content == "" then
 			NewNotification.ContentLabel.Visible = false
@@ -3741,6 +3939,7 @@ Components.Notification = (function()
 		Creator.AddSignal(NewNotification.CloseButton.MouseButton1Click, function()
 			NewNotification:Close()
 		end)
+
 		function NewNotification:ApplyTransparency()
 			if Library.Theme == "Glass" and Library.UseAcrylic then
 				local Value = Library.NotificationTransparency or 1
@@ -3766,12 +3965,19 @@ Components.Notification = (function()
 
 		function NewNotification:Open()
 			local ContentSize = NewNotification.LabelHolder.AbsoluteSize.Y
-			NewNotification.Holder.Size = UDim2.new(1, 0, 0, 58 + ContentSize)
+			local extraHeight = hasButtons and 38 or 0
+			NewNotification.Holder.Size = UDim2.new(1, 0, 0, 58 + ContentSize + extraHeight)
 
 			RootMotor:setGoal({
-				Scale = Spring(0, { frequency = 5 }),
-				Offset = Spring(0, { frequency = 5 }),
+				Scale = Spring(0, { frequency = 7.5, dampingRatio = 0.82 }),
+				Offset = Spring(0, { frequency = 7.5, dampingRatio = 0.82 }),
 			})
+
+			if ProgressBar and Config.Duration then
+				TweenService:Create(ProgressBar, TweenInfo.new(Config.Duration, Enum.EasingStyle.Linear), {
+					Size = UDim2.new(0, 0, 0, 2),
+				}):Play()
+			end
 
 			task.defer(function()
 				task.wait(0.1)
@@ -3792,10 +3998,10 @@ Components.Notification = (function()
 
 				task.spawn(function()
 					RootMotor:setGoal({
-						Scale = Spring(1, { frequency = 5 }),
-						Offset = Spring(60, { frequency = 5 }),
+						Scale = Spring(1, { frequency = 7.5, dampingRatio = 0.85 }),
+						Offset = Spring(60, { frequency = 7.5, dampingRatio = 0.85 }),
 					})
-					task.wait(0.4)
+					task.wait(0.25)
 					if Library.UseAcrylic then
 						NewNotification.AcrylicPaint.Model:Destroy()
 					end
@@ -4028,15 +4234,18 @@ Components.TitleBar = (function()
 					VerticalAlignment = Enum.VerticalAlignment.Center,
 				}),
 
-				Config.Icon and New("ImageLabel", {
-					Image = Config.Icon,
-					Size = UDim2.fromOffset(20, 20),
-					BackgroundTransparency = 1,
-					LayoutOrder = 1,
-					ThemeTag = {
-						ImageColor3 = "Text",
-					},
-				}) or nil,
+				(Config.Icon and Config.Icon ~= "") and (function()
+					local img = New("ImageLabel", {
+						Size = UDim2.fromOffset(20, 20),
+						BackgroundTransparency = 1,
+						LayoutOrder = 1,
+						ThemeTag = {
+							ImageColor3 = "Text",
+						},
+					})
+					Library:ApplyIcon(img, Config.Icon)
+					return img
+				end)() or nil,
 
 				New("TextLabel", {
 					RichText = true,
@@ -4080,12 +4289,16 @@ Components.TitleBar = (function()
 
 			}),
 			New("Frame", {
-				BackgroundTransparency = 0.5,
-				Size = UDim2.new(1, 0, 0, 1),
+				BackgroundTransparency = 0.35,
+				Size = UDim2.new(1, 0, 0, 1.5),
 				Position = UDim2.new(0, 0, 1, 0),
-				ThemeTag = {
-					BackgroundColor3 = "TitleBarLine",
-				},
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			}, {
+				New("UIGradient", {
+					ThemeTag = {
+						Color = "AccentGradient",
+					},
+				}),
 			}),
 		})
 		TitleBar.CloseButton = BarButton(Components.Assets.Close, UDim2.new(1, -4, 0, 4), TitleBar.Frame, function()
@@ -4108,9 +4321,13 @@ Components.TitleBar = (function()
 		TitleBar.MaxButton = BarButton(Components.Assets.Max, UDim2.new(1, -40, 0, 4), TitleBar.Frame, function()
 			Config.Window.Maximize(not Config.Window.Maximized)
 		end)
+		local showMin = (Config.MinButton ~= false) and (Config.MinimizeButton ~= false) and (Config.Minimize ~= false)
 		TitleBar.MinButton = BarButton(Components.Assets.Min, UDim2.new(1, -80, 0, 4), TitleBar.Frame, function()
 			Library.Window:Minimize()
 		end)
+		if not showMin and TitleBar.MinButton and TitleBar.MinButton.Frame then
+			TitleBar.MinButton.Frame.Visible = false
+		end
 
 		return TitleBar
 	end
@@ -4141,6 +4358,19 @@ Components.Window = (function()
 
 		local function CenterWindow()
 			local vp = Camera.ViewportSize
+			if vp.X > 50 and vp.Y > 50 then
+				local isSmallScreen = Mobile or (vp.X < 640)
+				local maxW = math.max(isSmallScreen and 280 or 320, vp.X - (isSmallScreen and 10 or 20))
+				local maxH = math.max(isSmallScreen and 200 or 240, vp.Y - (isSmallScreen and 12 or 20))
+				local curW = Window.Size.X.Offset
+				local curH = Window.Size.Y.Offset
+				if curW > maxW or curH > maxH or (isSmallScreen and curW >= vp.X - 6) then
+					Window.Size = UDim2.fromOffset(math.min(curW, maxW), math.min(curH, maxH))
+					if Window.Root then
+						Window.Root.Size = Window.Size
+					end
+				end
+			end
 			local x = math.max(0, (vp.X - Window.Size.X.Offset) / 2)
 			local y = math.max(0, (vp.Y - Window.Size.Y.Offset) / 2)
 			Window.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
@@ -4148,7 +4378,12 @@ Components.Window = (function()
 				Window.Root.Position = Window.Position
 			end
 		end
-		Window.TabWidth = Config.TabWidth
+
+		local defaultTabWidth = Config.TabWidth or 160
+		if (Mobile or (Camera.ViewportSize.X > 0 and Camera.ViewportSize.X < 640)) and defaultTabWidth > 130 then
+			defaultTabWidth = 130
+		end
+		Window.TabWidth = defaultTabWidth
 
 		local Selector = New("Frame", {
 			Size = UDim2.fromOffset(4, 0),
@@ -4163,12 +4398,59 @@ Components.Window = (function()
 			New("UICorner", {
 				CornerRadius = UDim.new(0, 9),
 			}),
+			New("UIGradient", {
+				Rotation = 90,
+				ThemeTag = {
+					Color = "AccentGradient",
+				},
+			}),
 		})
 
-		local ResizeStartFrame = New("Frame", {
-			Size = UDim2.fromOffset(20, 20),
+		local ResizeRight = New("Frame", {
+			Size = UDim2.new(0, 14, 1, -24),
+			Position = UDim2.new(1, -7, 0, 0),
 			BackgroundTransparency = 1,
-			Position = UDim2.new(1, -20, 1, -2),
+			ZIndex = 50,
+		})
+
+		local ResizeBottom = New("Frame", {
+			Size = UDim2.new(1, -28, 0, 14),
+			Position = UDim2.new(0, 14, 1, -7),
+			BackgroundTransparency = 1,
+			ZIndex = 50,
+		})
+
+		local ResizeBottomRight = New("Frame", {
+			Size = UDim2.fromOffset(26, 26),
+			Position = UDim2.new(1, -20, 1, -20),
+			BackgroundTransparency = 1,
+			ZIndex = 51,
+		}, {
+			New("ImageLabel", {
+				Image = "rbxassetid://10709798362",
+				Size = UDim2.fromOffset(14, 14),
+				Position = UDim2.new(1, -3, 1, -3),
+				AnchorPoint = Vector2.new(1, 1),
+				BackgroundTransparency = 1,
+				ImageTransparency = 0.5,
+				ThemeTag = {
+					ImageColor3 = "SubText",
+				},
+			})
+		})
+
+		local ResizeLeft = New("Frame", {
+			Size = UDim2.new(0, 14, 1, -44),
+			Position = UDim2.new(0, -7, 0, 34),
+			BackgroundTransparency = 1,
+			ZIndex = 50,
+		})
+
+		local ResizeBottomLeft = New("Frame", {
+			Size = UDim2.fromOffset(26, 26),
+			Position = UDim2.new(0, -6, 1, -20),
+			BackgroundTransparency = 1,
+			ZIndex = 51,
 		})
 
 		local SearchElements = {}
@@ -4186,84 +4468,78 @@ Components.Window = (function()
 				return string.lower(text)
 			end
 			
-			local function getElementValues(elementFrame)
-				local values = {}
-				
-				local function addText(text)
-					if text and text ~= "" then
-						table.insert(values, tostring(text))
-					end
-				end
-				
-				local function findTextInDescendants(obj)
-					if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-						addText(obj.Text)
-					end
-					for _, child in pairs(obj:GetChildren()) do
-						findTextInDescendants(child)
-					end
-				end
-				
-				findTextInDescendants(elementFrame)
-				
-				return values
-			end
-			
 			local function checkMatch(text, query)
-				if query == "" then
-					return true
-				end
-				
+				if query == "" then return true end
 				local normalizedText = normalizeText(text)
-				if normalizedText == "" then
-					return false
-				end
-				
+				if normalizedText == "" then return false end
 				local queryLower = normalizeText(query)
-				if queryLower == "" then
-					return true
-				end
+				if queryLower == "" then return true end
 				
-				if string.find(queryLower, "%s", 1) then
-					local words = {}
-					for word in string.gmatch(queryLower, "%S+") do
-						if #word > 0 then
-							table.insert(words, word)
-						end
+				for word in string.gmatch(queryLower, "%S+") do
+					if not string.find(normalizedText, word, 1, true) then
+						return false
 					end
-					
-					if #words == 0 then
-						return true
-					end
-					
-					for _, word in ipairs(words) do
-						if not string.find(normalizedText, word, 1, true) then
-							return false
-						end
-					end
-					return true
-				else
-					return string.find(normalizedText, queryLower, 1, true) ~= nil
 				end
+				return true
 			end
 			
 			local normalizedQuery = normalizeText(searchTerm)
+			local TabMod = Window.TabModule
+			
+			if normalizedQuery == "" then
+				for element, _ in pairs(AllElements) do
+					if element and element.Parent then
+						element.Visible = true
+					end
+				end
+				if TabMod and TabMod.Tabs then
+					for _, tabObj in pairs(TabMod.Tabs) do
+						if tabObj and tabObj.Frame then
+							tabObj.Frame.Visible = true
+						end
+					end
+				end
+				task.spawn(function()
+					if not Window or not Window.ContainerHolder then return end
+					for _, tabContainer in pairs(Window.ContainerHolder:GetChildren()) do
+						local scroll = tabContainer:IsA("ScrollingFrame") and tabContainer or tabContainer:FindFirstChildWhichIsA("ScrollingFrame")
+						if scroll then
+							local containerLayout = scroll:FindFirstChild("UIListLayout")
+							if containerLayout then
+								scroll.CanvasSize = UDim2.new(0, 0, 0, containerLayout.AbsoluteContentSize.Y + 20)
+							end
+							for _, section in pairs(scroll:GetChildren()) do
+								if section:IsA("Frame") and section:FindFirstChild("Container") then
+									section.Visible = true
+									local sCont = section:FindFirstChild("Container")
+									local sLayout = sCont:FindFirstChild("UIListLayout")
+									if sLayout then
+										sCont.Size = UDim2.new(1, 0, 0, sLayout.AbsoluteContentSize.Y)
+										section.Size = UDim2.new(1, 0, 0, sLayout.AbsoluteContentSize.Y + 25)
+									end
+								end
+							end
+						end
+					end
+				end)
+				return
+			end
 			
 			local matchedSectionFrames = {}
 			local elementsInMatchedSections = {}
+			local matchingTabContainers = {}
+			local matchingTabIndices = {}
 			
 			for element, data in pairs(AllElements) do
-				if element and element.Parent then
-					if data.type == "Section" then
-						local title = tostring(data.title or "")
-						if normalizedQuery ~= "" and checkMatch(title, normalizedQuery) then
-							matchedSectionFrames[element] = true
-							if element:FindFirstChild("Container") then
-								local container = element:FindFirstChild("Container")
-								for _, child in pairs(container:GetChildren()) do
-									if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
-										elementsInMatchedSections[child] = true
-									end
+				if element and element.Parent and data.type == "Section" then
+					local title = tostring(data.title or "")
+					if checkMatch(title, normalizedQuery) then
+						matchedSectionFrames[element] = true
+						local container = element:FindFirstChild("Container")
+						if container then
+							for _, child in pairs(container:GetChildren()) do
+								if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+									elementsInMatchedSections[child] = true
 								end
 							end
 						end
@@ -4272,114 +4548,103 @@ Components.Window = (function()
 			end
 			
 			for element, data in pairs(AllElements) do
-				if element and element.Parent then
-					if normalizedQuery == "" then
-						element.Visible = true
-					else
-						local title = tostring(data.title or "")
-						local desc = tostring(data.description or "")
-						local matchesTitle = checkMatch(title, normalizedQuery)
-						local matchesDesc = checkMatch(desc, normalizedQuery)
-						local matchesValues = false
-						
-						local elementValues = getElementValues(element)
-						for _, value in ipairs(elementValues) do
-							if checkMatch(value, normalizedQuery) then
-								matchesValues = true
+				if element and element.Parent and data.type ~= "Section" then
+					local title = tostring(data.title or "")
+					local desc = tostring(data.description or "")
+					local isMatch = checkMatch(title, normalizedQuery)
+						or (desc ~= "" and checkMatch(desc, normalizedQuery))
+						or elementsInMatchedSections[element] == true
+					
+					if not isMatch and data.section and matchedSectionFrames[data.section] then
+						isMatch = true
+					end
+					
+					element.Visible = isMatch
+					
+					if isMatch then
+						local tCont = data.tabContainer
+						if not tCont then
+							local p = element.Parent
+							while p do
+								if p.Parent == Window.ContainerHolder then
+									tCont = p
+									data.tabContainer = p
+									break
+								end
+								p = p.Parent
+							end
+						end
+						if tCont then
+							matchingTabContainers[tCont] = true
+						end
+					end
+				end
+			end
+			
+			if TabMod and TabMod.Tabs then
+				for idx, tabObj in pairs(TabMod.Tabs) do
+					if tabObj then
+						local matchesByName = tabObj.Name and checkMatch(tabObj.Name, normalizedQuery)
+						local matchesByElements = (tabObj.ContainerAnim and matchingTabContainers[tabObj.ContainerAnim]) or (tabObj.Container and matchingTabContainers[tabObj.Container])
+						if matchesByName or matchesByElements then
+							matchingTabIndices[idx] = true
+						end
+					end
+				end
+				
+				local firstMatchingIdx = nil
+				for idx, tabObj in pairs(TabMod.Tabs) do
+					if tabObj and tabObj.Frame then
+						local isTabVisible = matchingTabIndices[idx] == true
+						tabObj.Frame.Visible = isTabVisible
+						if isTabVisible and not firstMatchingIdx then
+							firstMatchingIdx = idx
+						end
+					end
+				end
+				
+				if firstMatchingIdx and not matchingTabIndices[TabMod.SelectedTab] then
+					TabMod:SelectTab(firstMatchingIdx)
+				end
+			end
+			
+			for element, data in pairs(AllElements) do
+				if element and element.Parent and data.type == "Section" then
+					local sCont = element:FindFirstChild("Container")
+					if sCont then
+						local hasVis = false
+						for _, child in pairs(sCont:GetChildren()) do
+							if not child:IsA("UIListLayout") and not child:IsA("UIPadding") and child.Visible then
+								hasVis = true
 								break
 							end
 						end
-						
-						local matchesSection = elementsInMatchedSections[element] == true
-						
-						if not matchesSection and data.section then
-							for sectionFrame, _ in pairs(matchedSectionFrames) do
-								if data.section == sectionFrame then
-									matchesSection = true
-									break
-								end
-							end
+						element.Visible = hasVis or matchedSectionFrames[element] == true
+						if element.Visible and sCont:FindFirstChild("UIListLayout") then
+							local sLayout = sCont:FindFirstChild("UIListLayout")
+							sCont.Size = UDim2.new(1, 0, 0, sLayout.AbsoluteContentSize.Y)
+							element.Size = UDim2.new(1, 0, 0, sLayout.AbsoluteContentSize.Y + 25)
 						end
-						
-						element.Visible = matchesTitle or matchesDesc or matchesValues or matchesSection
 					end
 				end
 			end
-
-			local searchTermForClosure = searchTerm
-			task.spawn(function()
-				task.wait(0.05)
-				
-				if not Window or not Window.ContainerHolder then return end
-				
-				for _, tabContainer in pairs(Window.ContainerHolder:GetChildren()) do
-					if tabContainer:IsA("ScrollingFrame") then
-						local containerLayout = tabContainer:FindFirstChild("UIListLayout")
-						if containerLayout then
-							local containerPadding = tabContainer:FindFirstChild("UIPadding")
-							local paddingTop = containerPadding and containerPadding.PaddingTop.Offset or 1
-							local paddingBottom = containerPadding and containerPadding.PaddingBottom.Offset or 1
-							local contentSize = containerLayout.AbsoluteContentSize.Y + paddingTop + paddingBottom
-							tabContainer.CanvasSize = UDim2.new(0, 0, 0, math.max(0, contentSize))
-						end
-						
-						for _, section in pairs(tabContainer:GetChildren()) do
-							if section:IsA("Frame") and section.Name ~= "UIPadding" then
-								local sectionContainer = section:FindFirstChild("Container")
-								
-								if sectionContainer and sectionContainer:IsA("Frame") then
-									local containerLayout = sectionContainer:FindFirstChild("UIListLayout")
-									if containerLayout then
-										local hasVisibleChild = false
-										for _, element in pairs(sectionContainer:GetChildren()) do
-											if not element:IsA("UIListLayout") and element.Visible then
-												hasVisibleChild = true
-												break
-											end
-										end
-										
-										if searchTermForClosure == "" or hasVisibleChild then
-											section.Visible = true
-											local containerPadding = sectionContainer:FindFirstChild("UIPadding")
-											local containerPaddingTop = containerPadding and containerPadding.PaddingTop.Offset or 0
-											local containerPaddingBottom = containerPadding and containerPadding.PaddingBottom.Offset or 0
-											local containerContentSize = containerLayout.AbsoluteContentSize.Y + containerPaddingTop + containerPaddingBottom
-											sectionContainer.Size = UDim2.new(1, 0, 0, math.max(0, containerContentSize))
-										else
-											section.Visible = false
-											sectionContainer.Size = UDim2.new(1, 0, 0, 0)
-										end
-									end
-								end
-								
-								local sectionLayout = section:FindFirstChild("UIListLayout")
-								if sectionLayout then
-									local sectionPadding = section:FindFirstChild("UIPadding")
-									local sectionPaddingTop = sectionPadding and sectionPadding.PaddingTop.Offset or 0
-									local sectionPaddingBottom = sectionPadding and sectionPadding.PaddingBottom.Offset or 0
-									local sectionContentSize = sectionLayout.AbsoluteContentSize.Y + sectionPaddingTop + sectionPaddingBottom
-									section.Size = UDim2.new(1, 0, 0, math.max(0, sectionContentSize + 25))
-								end
-							end
-						end
-					end
-				end
-			end)
 		end
 
 		local function RegisterElement(elementFrame, title, elementType, description)
 			if elementFrame then
 				local sectionFrame = nil
 				local parent = elementFrame.Parent
+				local tabContainer = nil
 				
 				while parent do
-					if parent:FindFirstChild("Container") then
-						local sectionRoot = parent
+					if parent:FindFirstChild("Container") and not sectionFrame then
 						local sectionContainer = parent:FindFirstChild("Container")
-						if sectionContainer and elementFrame.Parent == sectionContainer then
-							sectionFrame = sectionRoot
-							break
+						if elementFrame.Parent == sectionContainer then
+							sectionFrame = parent
 						end
+					end
+					if parent.Parent == Window.ContainerHolder then
+						tabContainer = parent
 					end
 					parent = parent.Parent
 				end
@@ -4388,7 +4653,8 @@ Components.Window = (function()
 					title = tostring(title or ""),
 					type = elementType or "Element",
 					description = tostring(description or ""),
-					section = sectionFrame
+					section = sectionFrame,
+					tabContainer = tabContainer,
 				}
 			end
 		end
@@ -4420,26 +4686,12 @@ Components.Window = (function()
 		Window.TopOffset = topOffset
 
 		local searchOffset = hasImage and (imageSize + 10 + topOffset) or topOffset
-		local searchHeight = 28
-
-		local tabHolderTop
-		if hasImage then
-			if Window.ShowSearch then
-				tabHolderTop = imageSize + 10 + topOffset + searchHeight + 6
-			else
-				tabHolderTop = imageSize + 10 + topOffset
-			end
-		else
-			if Window.ShowSearch then
-				tabHolderTop = topOffset + searchHeight + 6
-			else
-				tabHolderTop = 45
-			end
-		end
+		local tabHolderTop = Window.ShowSearch and 34 or 0
+		local userInfoBottomPad = Config.UserInfo and 56 or 4
 		Window.TabHolderTop = tabHolderTop
 
 		Window.TabHolder = New("ScrollingFrame", {
-			Size = UDim2.new(1, 0, 1, -(tabHolderTop + 6)),
+			Size = UDim2.new(1, 0, 1, -(tabHolderTop + userInfoBottomPad)),
 			Position = UDim2.new(0, 0, 0, tabHolderTop),
 			BackgroundTransparency = 1,
 			ScrollBarImageTransparency = 1,
@@ -4455,7 +4707,7 @@ Components.Window = (function()
 
 		local SearchFrame = New("Frame", {
 			Size = UDim2.new(1, 0, 0, 28),
-			Position = UDim2.new(0, 0, 0, searchOffset),
+			Position = UDim2.new(0, 0, 0, 0),
 			BackgroundTransparency = 0.7,
 			ZIndex = 10,
 			Visible = Window.ShowSearch,
@@ -4507,9 +4759,15 @@ Components.Window = (function()
 			Frame = SearchFrame,
 		}
 
+		local searchDebounce = nil
 		Creator.AddSignal(SearchTextbox.Input:GetPropertyChangedSignal("Text"), function()
 			local searchText = SearchTextbox.Input.Text or ""
-			UpdateElementVisibility(searchText)
+			if searchDebounce then
+				task.cancel(searchDebounce)
+			end
+			searchDebounce = task.delay(0.06, function()
+				UpdateElementVisibility(searchText)
+			end)
 		end)
 
 		Creator.AddSignal(SearchTextbox.Input.FocusLost, function(enterPressed)
@@ -4535,8 +4793,8 @@ Components.Window = (function()
 		local totalOffset = (Window.ShowSearch and searchHeight or 0) + imageOffset
 
 		local TabFrame = New("Frame", {
-			Size = UDim2.new(0, Window.TabWidth, 1, Window.ShowSearch and -63 or -31),
-			Position = UDim2.new(0, 12, 0, Window.ShowSearch and 54 or 19),
+			Size = UDim2.new(0, Window.TabWidth, 1, -58),
+			Position = UDim2.new(0, 12, 0, 48),
 			BackgroundTransparency = 1,
 			ClipsDescendants = true,
 		}, {
@@ -4654,14 +4912,29 @@ Components.Window = (function()
 		table.insert(rootChildren, Window.TabDisplay)
 		table.insert(rootChildren, Window.ContainerCanvas)
 		table.insert(rootChildren, TabFrame)
-		table.insert(rootChildren, ResizeStartFrame)
+		table.insert(rootChildren, ResizeRight)
+		table.insert(rootChildren, ResizeBottom)
+		table.insert(rootChildren, ResizeBottomRight)
+		table.insert(rootChildren, ResizeLeft)
+		table.insert(rootChildren, ResizeBottomLeft)
 
 		Window.Root = New("Frame", {
 			BackgroundTransparency = 1,
 			Size = Window.Size,
 			Position = Window.Position,
 			Parent = Config.Parent,
+			Visible = false,
 		}, rootChildren)
+
+		New("UICorner", {
+			CornerRadius = UDim.new(0, 8),
+			Parent = Window.Root,
+		})
+
+		Window.Scale = New("UIScale", {
+			Scale = 0.9,
+			Parent = Window.Root,
+		})
 
 		CenterWindow()
 		Creator.AddSignal(Camera:GetPropertyChangedSignal("ViewportSize"), function()
@@ -4679,6 +4952,9 @@ Components.Window = (function()
 			UserInfo = Config.UserInfo,
 			UserInfoSubtitle = Config.UserInfoSubtitle,
 			UserInfoSubtitleColor = Config.UserInfoSubtitleColor,
+			MinButton = Config.MinButton,
+			MinimizeButton = Config.MinimizeButton,
+			Minimize = Config.Minimize,
 		})
 
 		if Config.UserInfo then
@@ -4687,14 +4963,14 @@ Components.Window = (function()
 				return Themes[Library.Theme].SubText or Color3.fromRGB(170,170,170)
 			end
 
-			local userInfoHeight = 56
+			local userInfoHeight = 44
 			Window.UserInfoHeight = userInfoHeight
 			Window.UserInfoTop = Config.UserInfoTop
 			local UserInfoSection = New("Frame", {
 				Name = "UserInfoSection",
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, userInfoHeight),
-				Position = Config.UserInfoTop and UDim2.fromOffset(0, 0) or UDim2.new(0, 0, 1, -(userInfoHeight + 2)),
+				Position = Config.UserInfoTop and UDim2.fromOffset(0, 0) or UDim2.new(0, 0, 1, -userInfoHeight),
 				ZIndex = 15,
 				Parent = TabFrame,
 			})
@@ -4703,7 +4979,7 @@ Components.Window = (function()
 				Name = "UserInfoSeparator",
 				BackgroundTransparency = 0.5,
 				Size = UDim2.new(1, 0, 0, 1),
-				Position = Config.UserInfoTop and UDim2.fromOffset(0, userInfoHeight + 4) or UDim2.new(0, 0, 1, -(userInfoHeight + 4)),
+				Position = Config.UserInfoTop and UDim2.fromOffset(0, userInfoHeight + 2) or UDim2.new(0, 0, 1, -(userInfoHeight + 3)),
 				ZIndex = 15,
 				Parent = TabFrame,
 				ThemeTag = {
@@ -4716,7 +4992,7 @@ Components.Window = (function()
 				Name = "Avatar",
 				BackgroundTransparency = 1,
 				Size = UDim2.fromOffset(avatarSize, avatarSize),
-				Position = UDim2.new(0, 0, 0.5, 0),
+				Position = UDim2.new(0, 4, 0.5, 0),
 				AnchorPoint = Vector2.new(0, 0.5),
 				Image = "rbxassetid://0",
 				Parent = UserInfoSection,
@@ -4740,12 +5016,13 @@ Components.Window = (function()
 				Name = "UserName",
 				BackgroundTransparency = 1,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				TextYAlignment = Enum.TextYAlignment.Bottom,
+				TextYAlignment = Enum.TextYAlignment.Center,
 				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
 				TextSize = 13,
 				Text = titleText,
-				Size = UDim2.new(1, -avatarSize - 12, 0.5, 0),
-				Position = UDim2.new(0, avatarSize + 12, 0, -2),
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Size = UDim2.new(1, -(avatarSize + 14), 0, 16),
+				Position = UDim2.new(0, avatarSize + 10, 0, 5),
 				Parent = UserInfoSection,
 				ThemeTag = { TextColor3 = "Text" },
 			})
@@ -4754,40 +5031,21 @@ Components.Window = (function()
 				Name = "UserSubtitle",
 				BackgroundTransparency = 1,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				TextYAlignment = Enum.TextYAlignment.Top,
+				TextYAlignment = Enum.TextYAlignment.Center,
 				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-				TextSize = 12,
+				TextSize = 11,
 				TextTransparency = 0.2,
 				Text = subtitleText,
+				TextTruncate = Enum.TextTruncate.AtEnd,
 				TextColor3 = parseColor(Config.UserInfoSubtitleColor),
-				Size = UDim2.new(1, -avatarSize - 12, 0.5, 0),
-				Position = UDim2.new(0, avatarSize + 12, 0.5, 2),
+				Size = UDim2.new(1, -(avatarSize + 14), 0, 14),
+				Position = UDim2.new(0, avatarSize + 10, 0, 23),
 				Parent = UserInfoSection,
 			})
 
-			if Config.UserInfoTop then
-				local topOffset = Window.TopOffset or 0
-				local imageOffset = hasImage and (imageSize + 10 + topOffset) or topOffset
-				TabFrame.Position = UDim2.new(0, 12, 0, 39)
-				TabFrame.Size = UDim2.new(0, Window.TabWidth, 1, -(31 + imageOffset + userInfoHeight))
-				local searchOffset = hasImage and (imageSize + 10 + topOffset) or topOffset
-				SearchFrame.Position = UDim2.new(0, 0, 0, userInfoHeight + 6 + searchOffset)
-				if ImageFrame then
-					ImageFrame.Position = UDim2.new(0.5, 0, 0, userInfoHeight + topOffset)
-				end
-				local newTabHolderTop = userInfoHeight + 6 + (hasImage and (imageSize + 10 + topOffset) or topOffset) + (Window.ShowSearch and (searchHeight + 6) or 0)
-				Window.TabHolderTop = newTabHolderTop
-				Window.TabHolder.Position = UDim2.new(0, 0, 0, newTabHolderTop)
-				Window.TabHolder.Size = UDim2.new(1, 0, 1, -(newTabHolderTop + 6 + userInfoHeight))
-				if Window.UpdateTabHolderLayout then
-					Window:UpdateTabHolderLayout(newTabHolderTop)
-				end
-			else
-				Window.TabHolder.Size = UDim2.new(1, 0, 1, -(tabHolderTop + 6 + userInfoHeight))
-				if Window.UpdateTabHolderLayout then
-					Window:UpdateTabHolderLayout(tabHolderTop)
-				end
-			end
+			local tabTop = Window.ShowSearch and 34 or 0
+			Window.TabHolder.Position = UDim2.new(0, 0, 0, tabTop)
+			Window.TabHolder.Size = UDim2.new(1, 0, 1, -(tabTop + 52))
 		end
 
 		if Library.UseAcrylic then
@@ -4799,10 +5057,255 @@ Components.Window = (function()
 			Y = Window.Size.Y.Offset,
 		})
 
+		local targetPosX = Window.Position.X.Offset
+		local targetPosY = Window.Position.Y.Offset
+
 		local PosMotor = Flipper.GroupMotor.new({
-			X = Window.Position.X.Offset,
-			Y = Window.Position.Y.Offset,
+			X = targetPosX,
+			Y = targetPosY,
 		})
+
+		local EntranceScaleMotor = Flipper.SingleMotor.new(0.9)
+		EntranceScaleMotor:onStep(function(scaleVal)
+			if Window.Scale then
+				Window.Scale.Scale = scaleVal
+			end
+		end)
+
+		local Loader = New("Frame", {
+			Name = "FluentLoader",
+			Size = UDim2.fromOffset(260, 68),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.44),
+			BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+			BackgroundTransparency = 0,
+			Parent = Config.Parent,
+			ZIndex = 50,
+			ThemeTag = {
+				BackgroundColor3 = "AcrylicMain",
+			},
+		}, {
+			New("ImageLabel", {
+				Name = "LoaderShadow",
+				Image = "rbxassetid://8992230677",
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(Vector2.new(99, 99), Vector2.new(99, 99)),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Size = UDim2.new(1, 64, 1, 64),
+				Position = UDim2.fromScale(0.5, 0.5),
+				BackgroundTransparency = 1,
+				ImageColor3 = Color3.fromRGB(0, 0, 0),
+				ImageTransparency = 0.45,
+				ZIndex = 49,
+			}),
+			New("UICorner", {
+				CornerRadius = UDim.new(0, 14),
+			}),
+			New("UIStroke", {
+				Thickness = 1.2,
+				Transparency = 0.2,
+				ThemeTag = {
+					Color = "Accent",
+				},
+			}, {
+				New("UIGradient", {
+					Rotation = 45,
+					Color = ColorSequence.new({
+						ColorSequenceKeypoint.new(0, Color3.fromRGB(76, 194, 255)),
+						ColorSequenceKeypoint.new(0.5, Color3.fromRGB(140, 90, 255)),
+						ColorSequenceKeypoint.new(1, Color3.fromRGB(76, 194, 255)),
+					}),
+					ThemeTag = {
+						Color = "AccentGradient",
+					},
+				}),
+			}),
+		})
+
+		local LoaderScale = New("UIScale", {
+			Scale = 0.85,
+			Parent = Loader,
+		})
+
+		TweenService:Create(LoaderScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Scale = 1,
+		}):Play()
+
+		local LoaderIcon = New("ImageLabel", {
+			Size = UDim2.fromOffset(22, 22),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 18, 0.5, -6),
+			BackgroundTransparency = 1,
+			ZIndex = 51,
+			Parent = Loader,
+			ThemeTag = {
+				ImageColor3 = "Accent",
+			},
+		})
+		Library:ApplyIcon(LoaderIcon, Config.Icon or "sparkles")
+
+		local spinTween = TweenService:Create(LoaderIcon, TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {
+			Rotation = 360,
+		})
+		spinTween:Play()
+
+		local LoaderTitle = New("TextLabel", {
+			Size = UDim2.new(1, -56, 0, 16),
+			Position = UDim2.new(0, 48, 0, 14),
+			BackgroundTransparency = 1,
+			Text = Config.Title or "FluentXY",
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+			TextSize = 13,
+			TextColor3 = Color3.fromRGB(240, 240, 245),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 51,
+			Parent = Loader,
+			ThemeTag = {
+				TextColor3 = "Text",
+			},
+		})
+
+		local LoaderStatus = New("TextLabel", {
+			Size = UDim2.new(1, -56, 0, 14),
+			Position = UDim2.new(0, 48, 0, 31),
+			BackgroundTransparency = 1,
+			Text = "Initializing modules...",
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+			TextSize = 11,
+			TextColor3 = Color3.fromRGB(150, 150, 160),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 51,
+			Parent = Loader,
+			ThemeTag = {
+				TextColor3 = "SubText",
+			},
+		})
+
+		local ProgressTrack = New("Frame", {
+			Size = UDim2.new(1, -36, 0, 3),
+			Position = UDim2.new(0, 18, 1, -12),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 42),
+			BackgroundTransparency = 0.3,
+			ZIndex = 51,
+			Parent = Loader,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(0, 2),
+			}),
+		})
+
+		local ProgressFill = New("Frame", {
+			Size = UDim2.new(0, 0, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(76, 194, 255),
+			ZIndex = 52,
+			Parent = ProgressTrack,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(0, 2),
+			}),
+		})
+
+		TweenService:Create(ProgressFill, TweenInfo.new(1.15, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 1, 0),
+		}):Play()
+
+		local startTime = os.clock()
+		local EntrancePlayed = false
+
+		task.delay(0.35, function()
+			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed then
+				LoaderStatus.Text = "Configuring interface..."
+			end
+		end)
+
+		task.delay(0.75, function()
+			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed then
+				LoaderStatus.Text = "Loading components..."
+			end
+		end)
+
+		task.delay(1.1, function()
+			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed then
+				LoaderStatus.Text = "Ready!"
+				LoaderStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
+			end
+		end)
+
+		function Window:PlayEntrance()
+			if EntrancePlayed then return end
+			EntrancePlayed = true
+
+			local elapsed = os.clock() - startTime
+			if elapsed < 1.2 then
+				task.wait(1.2 - elapsed)
+			end
+
+			local finalX = Window.Position.X.Offset
+			local finalY = Window.Position.Y.Offset
+
+			if Loader and Loader.Parent then
+				pcall(function()
+					spinTween:Cancel()
+					local shadow = Loader:FindFirstChild("LoaderShadow")
+					if shadow then
+						TweenService:Create(shadow, TweenInfo.new(0.18), { ImageTransparency = 1 }):Play()
+					end
+					TweenService:Create(LoaderTitle, TweenInfo.new(0.15), { TextTransparency = 1 }):Play()
+					TweenService:Create(LoaderStatus, TweenInfo.new(0.15), { TextTransparency = 1 }):Play()
+					TweenService:Create(LoaderIcon, TweenInfo.new(0.15), { ImageTransparency = 1 }):Play()
+					TweenService:Create(ProgressTrack, TweenInfo.new(0.15), { BackgroundTransparency = 1 }):Play()
+					TweenService:Create(ProgressFill, TweenInfo.new(0.15), { BackgroundTransparency = 1 }):Play()
+				end)
+
+				local morphTween = TweenService:Create(Loader, TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+					Size = Window.Size,
+					Position = Window.Position,
+					AnchorPoint = Vector2.new(0, 0),
+					BackgroundTransparency = 0.88,
+				})
+				morphTween:Play()
+				task.wait(0.2)
+			end
+
+			Window.Root.Visible = true
+			if Library.UseAcrylic and Library.Acrylic then
+				Acrylic.Enable()
+				if Window.AcrylicPaint and Window.AcrylicPaint.Model then
+					local targetTrans = (Library.Theme == "Glass") and 0.85 or 0.98
+					Window.AcrylicPaint.Model.Transparency = targetTrans
+				end
+			end
+			if Window.Scale then
+				Window.Scale.Scale = 0.95
+			end
+			PosMotor:setGoal({
+				X = Instant(finalX),
+				Y = Instant(finalY),
+			})
+
+			EntranceScaleMotor:setGoal(Spring(1, { frequency = 8, dampingRatio = 0.8 }))
+
+			if Loader and Loader.Parent then
+				task.delay(0.25, function()
+					if Loader and Loader.Parent then
+						local fade = TweenService:Create(Loader, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
+						fade:Play()
+						fade.Completed:Connect(function()
+							Loader:Destroy()
+						end)
+					end
+				end)
+			end
+		end
+
+		task.delay(1.3, function()
+			if not EntrancePlayed then
+				Window:PlayEntrance()
+			end
+		end)
 
 		_G.CDDrag = 0
 		Window.SelectorPosMotor = Flipper.SingleMotor.new(17)
@@ -4812,7 +5315,6 @@ Components.Window = (function()
 		Window.ContainerXMotor = Flipper.SingleMotor.new(0)
 
 		SizeMotor:onStep(function(values)
-			task.wait(_G.CDDrag / 10)
 			Window.Root.Size = UDim2.new(0, values.X, 0, values.Y)
 			task.spawn(function()
 				task.wait(0.01)
@@ -4823,34 +5325,19 @@ Components.Window = (function()
 		end)
 
 		PosMotor:onStep(function(values)
-			task.wait(_G.CDDrag / 10)
 			Window.Root.Position = UDim2.new(0, values.X, 0, values.Y)
 		end)
 
 		local LastValue = 0
 		local LastTime = 0
 		Window.SelectorPosMotor:onStep(function(Value)
-			local base = Window.TabHolderTop or 45
+			local base = Window.TabHolderTop or (Window.ShowSearch and 34 or 0)
 			local verticalInset = 16
 			local selectorY = base + Value + verticalInset
 
-			local searchOffset = Window.HasImage and (Window.ImageSize + Window.TopOffset + 10) or Window.TopOffset
-			local searchTop = searchOffset
-			local searchBottom = searchTop + 28
-
-			if Window.HasImage and Window.ImageSize then
-				local imageBottom = Window.ImageSize + Window.TopOffset + 10
-				if selectorY < imageBottom then
-					Selector.Visible = false
-					return
-				end
-			end
-
-			if Window.ShowSearch then
-				if selectorY >= searchTop and selectorY <= searchBottom then
-					Selector.Visible = false
-					return
-				end
+			if Window.ShowSearch and selectorY < 32 then
+				Selector.Visible = false
+				return
 			end
 
 			if Window.UserInfoHeight then
@@ -4948,6 +5435,10 @@ Components.Window = (function()
 				Input.Changed:Connect(function()
 					if Input.UserInputState == Enum.UserInputState.End then
 						Dragging = false
+						PosMotor:setGoal({
+							X = Instant(Window.Position.X.Offset),
+							Y = Instant(Window.Position.Y.Offset),
+						})
 					end
 				end)
 			end
@@ -4962,24 +5453,36 @@ Components.Window = (function()
 			end
 		end)
 
-		Creator.AddSignal(ResizeStartFrame.InputBegan, function(Input)
-			if
-				Input.UserInputType == Enum.UserInputType.MouseButton1
-				or Input.UserInputType == Enum.UserInputType.Touch
-			then
-				Resizing = true
-				ResizePos = Input.Position
-			end
-		end)
+		local ResizeDirection
+		local ResizeStartSize
+		local ResizeStartPos
+
+		local function BindResizeHandle(Handle, Direction)
+			Creator.AddSignal(Handle.InputBegan, function(Input)
+				if
+					Input.UserInputType == Enum.UserInputType.MouseButton1
+					or Input.UserInputType == Enum.UserInputType.Touch
+				then
+					Resizing = true
+					ResizeDirection = Direction
+					ResizePos = Input.Position
+					ResizeStartSize = Window.Size
+					ResizeStartPos = Window.Position
+				end
+			end)
+		end
+
+		BindResizeHandle(ResizeRight, "Right")
+		BindResizeHandle(ResizeBottom, "Bottom")
+		BindResizeHandle(ResizeBottomRight, "BottomRight")
+		BindResizeHandle(ResizeLeft, "Left")
+		BindResizeHandle(ResizeBottomLeft, "BottomLeft")
 
 		Creator.AddSignal(UserInputService.InputChanged, function(Input)
 			if Input == DragInput and Dragging then
 				local Delta = Input.Position - MousePos
 				Window.Position = UDim2.fromOffset(StartPos.X.Offset + Delta.X, StartPos.Y.Offset + Delta.Y)
-				PosMotor:setGoal({
-					X = Instant(Window.Position.X.Offset),
-					Y = Instant(Window.Position.Y.Offset),
-				})
+				Window.Root.Position = Window.Position
 
 				if Window.Maximized then
 					Window.Maximize(false, true, true)
@@ -4991,23 +5494,53 @@ Components.Window = (function()
 				and Resizing
 			then
 				local Delta = Input.Position - ResizePos
-				local StartSize = Window.Size
+				local StartSize = ResizeStartSize or Window.Size
+				local StartWinPos = ResizeStartPos or Window.Position
 
-				local TargetSize = Vector3.new(StartSize.X.Offset, StartSize.Y.Offset, 0) + Vector3.new(1, 1, 0) * Delta
-				local TargetSizeClamped =
-					Vector2.new(math.clamp(TargetSize.X, 470, 2048), math.clamp(TargetSize.Y, 380, 2048))
+				local minWidth = Mobile and 320 or 400
+				local minHeight = Mobile and 240 or 320
+				local vp = Camera.ViewportSize
+				local maxWidth = math.max(minWidth, vp.X)
+				local maxHeight = math.max(minHeight, vp.Y)
+
+				local targetWidth = StartSize.X.Offset
+				local targetHeight = StartSize.Y.Offset
+				local targetPosX = StartWinPos.X.Offset
+				local targetPosY = StartWinPos.Y.Offset
+
+				if ResizeDirection == "Right" or ResizeDirection == "BottomRight" then
+					targetWidth = math.clamp(StartSize.X.Offset + Delta.X, minWidth, maxWidth)
+				elseif ResizeDirection == "Left" or ResizeDirection == "BottomLeft" then
+					targetWidth = math.clamp(StartSize.X.Offset - Delta.X, minWidth, maxWidth)
+					local deltaW = targetWidth - StartSize.X.Offset
+					targetPosX = StartWinPos.X.Offset - deltaW
+				end
+
+				if ResizeDirection == "Bottom" or ResizeDirection == "BottomRight" or ResizeDirection == "BottomLeft" then
+					targetHeight = math.clamp(StartSize.Y.Offset + Delta.Y, minHeight, maxHeight)
+				end
 
 				SizeMotor:setGoal({
-					X = Flipper.Instant.new(TargetSizeClamped.X),
-					Y = Flipper.Instant.new(TargetSizeClamped.Y),
+					X = Flipper.Instant.new(targetWidth),
+					Y = Flipper.Instant.new(targetHeight),
 				})
+
+				if targetPosX ~= Window.Position.X.Offset then
+					Window.Position = UDim2.fromOffset(targetPosX, targetPosY)
+					PosMotor:setGoal({
+						X = Instant(targetPosX),
+						Y = Instant(targetPosY),
+					})
+				end
 			end
 		end)
 
 		Creator.AddSignal(UserInputService.InputEnded, function(Input)
-			if Resizing == true or Input.UserInputType == Enum.UserInputType.Touch then
+			if Resizing and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
 				Resizing = false
+				ResizeDirection = nil
 				Window.Size = UDim2.fromOffset(SizeMotor:getValue().X, SizeMotor:getValue().Y)
+				Window.Position = UDim2.fromOffset(PosMotor:getValue().X, PosMotor:getValue().Y)
 			end
 		end)
 
@@ -5024,38 +5557,54 @@ Components.Window = (function()
 		end)
 
 		Creator.AddSignal(UserInputService.InputBegan, function(Input)
-			if
-				type(Library.MinimizeKeybind) == "table"
-				and Library.MinimizeKeybind.Type == "Keybind"
-				and not UserInputService:GetFocusedTextBox()
-			then
+			if UserInputService:GetFocusedTextBox() then return end
+			local matched = false
+			if type(Library.MinimizeKeybind) == "table" and Library.MinimizeKeybind.Type == "Keybind" and Library.MinimizeKeybind.Value then
 				if Input.KeyCode.Name == Library.MinimizeKeybind.Value then
-					Window:Minimize()
+					matched = true
 				end
-			elseif Input.KeyCode == Library.MinimizeKey and not UserInputService:GetFocusedTextBox() then
+			end
+			if not matched and Library.MinimizeKey and Input.KeyCode == Library.MinimizeKey then
+				matched = true
+			end
+			if matched then
 				Window:Minimize()
 			end
 		end)
 
-		function Window:ToggleSearch()
-			Window.ShowSearch = not Window.ShowSearch
-			SearchFrame.Visible = Window.ShowSearch
-			local topOffset = Window.TopOffset or 25
-			local searchOffset = Window.HasImage and (Window.ImageSize + 10 + topOffset) or topOffset
-			SearchFrame.Position = UDim2.new(0, 0, 0, searchOffset)
-			local imageOffset = Window.HasImage and (Window.ImageSize + 10 + topOffset) or topOffset
-			local searchHeight = 28
-			local totalOffset = (Window.ShowSearch and searchHeight or 0) + imageOffset
-			TabFrame.Size = UDim2.new(0, Window.TabWidth, 1, -(totalOffset + 31))
-
-			if Window.UpdateTabHolderLayout then
-				Window:UpdateTabHolderLayout()
+		function Window:ToggleSearch(forcedState)
+			if forcedState ~= nil then
+				Window.ShowSearch = forcedState
+			else
+				Window.ShowSearch = not Window.ShowSearch
 			end
+			SearchFrame.Visible = Window.ShowSearch
+			local tabTop = Window.ShowSearch and 34 or 0
+			local bottomPad = Config.UserInfo and 52 or 4
+			Window.TabHolder.Position = UDim2.new(0, 0, 0, tabTop)
+			Window.TabHolder.Size = UDim2.new(1, 0, 1, -(tabTop + bottomPad))
+			Window.TabHolderTop = tabTop
 		end
 
 		function Window:Minimize()
 			Window.Minimized = not Window.Minimized
 			Window.Root.Visible = not Window.Minimized
+
+			if Window.Minimized then
+				if Window.AcrylicPaint and Window.AcrylicPaint.Model then
+					Window.AcrylicPaint.Model.Transparency = 1
+					Window.AcrylicPaint.Model.CFrame = CFrame.new(0, -999999, 0)
+				end
+				Acrylic.Disable()
+			else
+				if Library.UseAcrylic and Library.Acrylic then
+					Acrylic.Enable()
+					if Window.AcrylicPaint and Window.AcrylicPaint.Model then
+						local targetTrans = (Library.Theme == "Glass") and 0.85 or 0.98
+						Window.AcrylicPaint.Model.Transparency = targetTrans
+					end
+				end
+			end
 
 			for _, Option in next, Library.Options do
 				if Option and Option.Type == "Dropdown" and Option.Opened then
@@ -5081,22 +5630,21 @@ Components.Window = (function()
 				end
 			end
 
-			if not RunService:IsStudio() and Library.Minimizer then
+			if Library.Minimizer then
 				pcall(function()
-					if Mobile then
-						local mobileButton = Library.Minimizer:FindFirstChild("TextButton")
-						if mobileButton then
-							local imageLabel = mobileButton:FindFirstChild("ImageLabel")
-							if imageLabel then
-								imageLabel.Image = Window.Minimized and "rbxassetid://10734896384" or "rbxassetid://10734897102"
-							end
-						end
-					else
-						local desktopButton = Library.Minimizer:FindFirstChild("TextButton")
-						if desktopButton then
-							local imageLabel = desktopButton:FindFirstChild("ImageLabel")
-							if imageLabel then
-								imageLabel.Image = Window.Minimized and "rbxassetid://10734896384" or "rbxassetid://10734897102"
+					local mObj = Library.Minimizer
+					local frame = (typeof(mObj) == "table" and mObj.Frame) or (typeof(mObj) == "Instance" and mObj)
+					if frame and frame.Parent then
+						local btn = frame:FindFirstChildWhichIsA("TextButton") or frame:FindFirstChild("MinimizeButton")
+						if btn then
+							local img = btn:FindFirstChildWhichIsA("ImageLabel") or btn:FindFirstChild("Icon")
+							if img then
+								img.ZIndex = (btn.ZIndex or 1000000000) + 2
+								if Window.Minimized then
+									Library:ApplyIcon(img, "maximize")
+								else
+									Library:ApplyIcon(img, Config.Icon or iconAsset or "home")
+								end
 							end
 						end
 					end
@@ -5105,10 +5653,15 @@ Components.Window = (function()
 		end
 
 		function Window:Destroy()
-			if Library.UseAcrylic then
-				Window.AcrylicPaint.Model:Destroy()
+			pcall(function()
+				Acrylic.Destroy()
+			end)
+			if Library.UseAcrylic and Window.AcrylicPaint and Window.AcrylicPaint.Model then
+				pcall(function() Window.AcrylicPaint.Model:Destroy() end)
 			end
-			Window.Root:Destroy()
+			if Window.Root then
+				Window.Root:Destroy()
+			end
 		end
 
 		function Window:SetBackgroundImage(imageUrl, imageTransparency)
@@ -5253,6 +5806,11 @@ Components.Window = (function()
 
 		function Window:SelectTab(Tab)
 			TabModule:SelectTab(Tab)
+			if Window.PlayEntrance then
+				task.spawn(function()
+					Window:PlayEntrance()
+				end)
+			end
 		end
 
 		Creator.AddSignal(Window.TabHolder:GetPropertyChangedSignal("CanvasPosition"), function()
@@ -5291,6 +5849,18 @@ ElementsTable.Button = (function()
 			},
 		})
 
+		Creator.AddSignal(ButtonFrame.Frame.MouseButton1Down, function()
+			TweenService:Create(ButtonIco, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = UDim2.new(1, -6, 0.5, 0)
+			}):Play()
+		end)
+
+		Creator.AddSignal(ButtonFrame.Frame.MouseButton1Up, function()
+			TweenService:Create(ButtonIco, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Position = UDim2.new(1, -10, 0.5, 0)
+			}):Play()
+		end)
+
 		Creator.AddSignal(ButtonFrame.Frame.MouseButton1Click, function()
 			Library:SafeCallback(Config.Callback)
 		end)
@@ -5315,7 +5885,7 @@ ElementsTable.Toggle = (function()
 		}
 
 		local ToggleFrame = Components.Element(Config.Title, Config.Description, self.Container, true, Config)
-		ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
+		ToggleFrame:SetRightOffset(65)
 
 		Toggle.SetTitle = ToggleFrame.SetTitle
 		Toggle.SetDesc = ToggleFrame.SetDesc
@@ -5370,12 +5940,12 @@ ElementsTable.Toggle = (function()
 			Creator.OverrideTag(ToggleCircle, { ImageColor3 = Toggle.Value and "ToggleToggled" or "ToggleSlider" })
 			TweenService:Create(
 				ToggleCircle,
-				TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+				TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 				{ Position = UDim2.new(0, Toggle.Value and 19 or 2, 0.5, 0) }
 			):Play()
 			TweenService:Create(
 				ToggleSlider,
-				TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+				TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 				{ BackgroundTransparency = Toggle.Value and 0.45 or 1 }
 			):Play()
 			ToggleCircle.ImageTransparency = Toggle.Value and 0 or 0.5
@@ -5430,17 +6000,29 @@ ElementsTable.Dropdown = (function()
 			Opened = false,
 			Type = "Dropdown",
 			Callback = Config.Callback or function() end,
-			Search = (Config.Search == nil) and true or Config.Search,
+			Search = (Config.Search == nil) and (#(Config.Values or {}) >= 5) or (Config.Search == true),
 			KeepSearch = Config.KeepSearch == true,
 			OpenToRight = windowDropdownsOutside
 		}
 
-		if Dropdown.Multi and Config.AllowNull then
-			Dropdown.Value = {}
+		if Dropdown.Multi then
+			if type(Config.Default) == "table" and not Config.AllowNull then
+				local initial = {}
+				for k, v in pairs(Config.Default) do
+					if type(k) == "string" and v == true then
+						initial[k] = true
+					elseif type(v) == "string" then
+						initial[v] = true
+					end
+				end
+				Dropdown.Value = initial
+			else
+				Dropdown.Value = {}
+			end
 		end
 
 		local DropdownFrame = Components.Element(Config.Title, Config.Description, self.Container, false, Config)
-		DropdownFrame.DescLabel.Size = UDim2.new(1, -170, 0, 14)
+		DropdownFrame:SetRightOffset(185)
 
 		Dropdown.SetTitle = DropdownFrame.SetTitle
 		Dropdown.SetDesc = DropdownFrame.SetDesc
@@ -5529,6 +6111,8 @@ ElementsTable.Dropdown = (function()
 			DropdownListLayout,
 		})
 
+		local RecalculateCanvasSize, RecalculateListSize, RecalculateListPosition
+
 		local SearchBar
 		local SearchBox
 		if Dropdown.Search then
@@ -5586,7 +6170,7 @@ ElementsTable.Dropdown = (function()
 				filterToken = filterToken + 1
 				local myToken = filterToken
 				task.spawn(function()
-					task.wait(0.01)
+					task.wait(0.04)
 					if myToken ~= filterToken then return end
 					local text = (SearchBox.Text or ""):lower()
 					for _, element in next, DropdownScrollFrame:GetChildren() do
@@ -5596,11 +6180,11 @@ ElementsTable.Dropdown = (function()
 						end
 					end
 					task.wait()
-					RecalculateCanvasSize()
+					if RecalculateCanvasSize then RecalculateCanvasSize() end
 					task.wait()
-					RecalculateListSize()
+					if RecalculateListSize then RecalculateListSize() end
 					task.wait()
-					RecalculateListPosition()
+					if RecalculateListPosition then RecalculateListPosition() end
 				end)
 			end
 
@@ -5678,7 +6262,7 @@ ElementsTable.Dropdown = (function()
 			end
 		end
 
-		local function RecalculateListPosition()
+		RecalculateListPosition = function()
 			if not DropdownHolderCanvas or not DropdownInner then return end
 			
 			local dropdownX = DropdownInner.AbsolutePosition.X
@@ -5820,7 +6404,7 @@ ElementsTable.Dropdown = (function()
 		end
 
 		local ListSizeX = 0
-		local function RecalculateListSize()
+		RecalculateListSize = function()
 			if not DropdownHolderCanvas or not DropdownHolderFrame then return end
 			
 			local visibleCount = 0
@@ -5845,7 +6429,7 @@ ElementsTable.Dropdown = (function()
 			DropdownHolderFrame.Size = UDim2.fromScale(1, many and (targetHeight / math.max(targetHeight, 1)) or 1)
 		end
 
-		local function RecalculateCanvasSize()
+		RecalculateCanvasSize = function()
 			DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0, DropdownListLayout.AbsoluteContentSize.Y)
 		end
 
@@ -5960,12 +6544,12 @@ ElementsTable.Dropdown = (function()
 			task.wait()
 			TweenService:Create(
 				DropdownHolderFrame,
-				TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+				TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 				{ Size = UDim2.fromScale(1, 1) }
 			):Play()
 			TweenService:Create(
 				DropdownIco,
-				TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+				TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 				{ Rotation = openRotation }
 			):Play()
 		end
@@ -5975,11 +6559,11 @@ ElementsTable.Dropdown = (function()
 			if Dropdown.OpenToRight then
 				Dropdown.SavedY = nil
 			end
-			DropdownHolderFrame.Size = UDim2.fromScale(1, 1)
+			DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
 			DropdownHolderCanvas.Visible = false
 			TweenService:Create(
 				DropdownIco,
-				TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+				TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 				{ Rotation = closeRotation }
 			):Play()
 			Dropdown:Display()
@@ -6324,7 +6908,7 @@ ElementsTable.Slider = (function()
 		local Dragging = false
 
 		local SliderFrame = Components.Element(Config.Title, Config.Description, self.Container, false, Config)
-		SliderFrame.DescLabel.Size = UDim2.new(1, -170, 0, 14)
+		SliderFrame:SetRightOffset(185)
 
 		Slider.Elements = SliderFrame
 		Slider.SetTitle = SliderFrame.SetTitle
@@ -6471,6 +7055,9 @@ ElementsTable.Slider = (function()
 
 		Creator.AddSignal(SliderFrame.Frame.MouseEnter, function()
 			isHovering = true
+			TweenService:Create(SliderDot, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.fromOffset(17, 17)
+			}):Play()
 			if not SliderInput:IsFocused() then
 				SliderDisplay.Visible = false
 				SliderInput.Text = tostring(Slider.Value)
@@ -6493,6 +7080,9 @@ ElementsTable.Slider = (function()
 
 		Creator.AddSignal(SliderFrame.Frame.MouseLeave, function()
 			isHovering = false
+			TweenService:Create(SliderDot, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.fromOffset(14, 14)
+			}):Play()
 			if not SliderInput:IsFocused() and inputVisible then
 				local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
 
@@ -6677,7 +7267,8 @@ ElementsTable.Keybind = (function()
 
 		local Picking = false
 
-		local KeybindFrame = Components.Element(Config.Title, Config.Description, self.Container, true)
+		local KeybindFrame = Components.Element(Config.Title, Config.Description, self.Container, true, Config)
+		KeybindFrame:SetRightOffset(125)
 
 		Keybind.SetTitle = KeybindFrame.SetTitle
 		Keybind.SetDesc = KeybindFrame.SetDesc
@@ -6883,7 +7474,8 @@ ElementsTable.Colorpicker = (function()
 
 		Colorpicker:SetHSVFromRGB(Colorpicker.Value)
 
-		local ColorpickerFrame = Components.Element(Config.Title, Config.Description, self.Container, true)
+		local ColorpickerFrame = Components.Element(Config.Title, Config.Description, self.Container, true, Config)
+		ColorpickerFrame:SetRightOffset(65)
 
 		Colorpicker.SetTitle = ColorpickerFrame.SetTitle
 		Colorpicker.SetDesc = ColorpickerFrame.SetDesc
@@ -7316,8 +7908,8 @@ ElementsTable.Colorpicker = (function()
 			DisplayFrameColor.BackgroundColor3 = Colorpicker.Value
 			DisplayFrameColor.BackgroundTransparency = Colorpicker.Transparency
 
-			Element.Library:SafeCallback(Colorpicker.Callback, Colorpicker.Value)
-			Element.Library:SafeCallback(Colorpicker.Changed, Colorpicker.Value)
+			Element.Library:SafeCallback(Colorpicker.Callback, Colorpicker.Value, Colorpicker.Transparency)
+			Element.Library:SafeCallback(Colorpicker.Changed, Colorpicker.Value, Colorpicker.Transparency)
 		end
 
 		function Colorpicker:SetValue(HSV, Transparency)
@@ -7336,7 +7928,7 @@ ElementsTable.Colorpicker = (function()
 
 		function Colorpicker:OnChanged(Func)
 			Colorpicker.Changed = Func
-			Func(Colorpicker.Value)
+			Func(Colorpicker.Value, Colorpicker.Transparency)
 		end
 
 		function Colorpicker:Destroy()
@@ -7379,7 +7971,8 @@ ElementsTable.Input = (function()
 			Type = "Input",
 		}
 
-		local InputFrame = Components.Element(Config.Title, Config.Description, self.Container, false)
+		local InputFrame = Components.Element(Config.Title, Config.Description, self.Container, false, Config)
+		InputFrame:SetRightOffset(185)
 
 		Input.SetTitle = InputFrame.SetTitle
 		Input.SetDesc = InputFrame.SetDesc
@@ -7438,6 +8031,93 @@ ElementsTable.Input = (function()
 
 		Library.Options[Idx] = Input
 		return Input
+	end
+
+	return Element
+end)()
+
+ElementsTable.SearchBar = (function()
+	local Element = {}
+	Element.__index = Element
+	Element.__type = "SearchBar"
+	local New = Creator.New
+
+	function Element:New(Idx, Config)
+		Config = Config or {}
+		local SearchBar = {
+			Type = "SearchBar",
+			Value = Config.Default or "",
+			Placeholder = Config.Placeholder or Config.Title or "Search...",
+			Callback = Config.Callback or function(text) end,
+		}
+
+		local SearchBarFrame = Components.Element("", "", self.Container, false, Config)
+		SearchBar.SetTitle = SearchBarFrame.SetTitle
+		SearchBar.SetDesc = SearchBarFrame.SetDesc
+		SearchBar.Visible = SearchBarFrame.Visible
+		SearchBar.Elements = SearchBarFrame
+
+		local InputBox = New("TextBox", {
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
+			TextColor3 = Color3.fromRGB(240, 240, 240),
+			TextSize = 13,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, -38, 1, 0),
+			Position = UDim2.fromOffset(10, 0),
+			PlaceholderText = SearchBar.Placeholder,
+			PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
+			ClearTextOnFocus = false,
+			Text = SearchBar.Value,
+			ThemeTag = {
+				TextColor3 = "Text",
+				PlaceholderColor3 = "SubText",
+			},
+		})
+
+		local SearchIcon = New("ImageLabel", {
+			Size = UDim2.fromOffset(16, 16),
+			Position = UDim2.new(1, -12, 0.5, 0),
+			AnchorPoint = Vector2.new(1, 0.5),
+			BackgroundTransparency = 1,
+			Image = "rbxassetid://10734943674",
+			ThemeTag = {
+				ImageColor3 = "SubText",
+			},
+		})
+
+		local BoxContainer = New("Frame", {
+			Size = UDim2.new(1, 0, 0, 32),
+			BackgroundTransparency = 0.85,
+			BackgroundColor3 = Color3.fromRGB(40, 40, 48),
+			Parent = SearchBarFrame.Frame,
+			ThemeTag = {
+				BackgroundColor3 = "Input",
+			},
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+			New("UIStroke", {
+				Transparency = 0.6,
+				ThemeTag = { Color = "ElementBorder" },
+			}),
+			InputBox,
+			SearchIcon,
+		})
+
+		function SearchBar:SetValue(Text)
+			InputBox.Text = Text
+			SearchBar.Value = Text
+			pcall(SearchBar.Callback, Text)
+		end
+
+		Creator.AddSignal(InputBox:GetPropertyChangedSignal("Text"), function()
+			SearchBar.Value = InputBox.Text
+			pcall(SearchBar.Callback, InputBox.Text)
+		end)
+
+		Library.Options[Idx] = SearchBar
+		return SearchBar
 	end
 
 	return Element
@@ -8279,22 +8959,6 @@ local Icons = {
 	["lucide-dumbbell"] = "rbxassetid://18273453053"
 }
 
-pcall(function()
-    local fetchedIcons = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/jinxy6/fluentXY/refs/heads/main/Icons.lua?v=" .. tostring(os.time())))()
-    if fetchedIcons and type(fetchedIcons) == "table" then
-        for k, v in pairs(fetchedIcons) do
-            Icons[k] = v
-        end
-    end
-end)
-
-function Library:GetIcon(Name)
-	if Name ~= nil and Icons["lucide-" .. Name] then
-		return Icons["lucide-" .. Name]
-	end
-	return nil
-end
-
 local Elements = {}
 Elements.__index = Elements
 Elements.__namecall = function(Table, Key, ...)
@@ -8314,6 +8978,17 @@ for _, ElementComponent in pairs(ElementsTable) do
     -- Alias for backwards compatibility with older Fluent branches
     Elements[ElementComponent.__type] = Elements["Add" .. ElementComponent.__type]
 end
+
+Elements.AddColorPicker = Elements.AddColorpicker
+Elements.ColorPicker = Elements.AddColorpicker
+Elements.AddMultiDropdown = function(self, Idx, Config)
+	Config = Config or {}
+	Config.Multi = true
+	return self:AddDropdown(Idx, Config)
+end
+Elements.MultiDropdown = Elements.AddMultiDropdown
+Elements.AddSearch = Elements.AddSearchBar
+Elements.Search = Elements.AddSearchBar
 
 Library.Elements = Elements
 
@@ -8971,233 +9646,87 @@ local SaveManager = {} do
 
 
 		section:AddButton({
-
-
 			Title = "Create config",
-
-
 			Callback = function()
+				task.spawn(function()
+					local name = SaveManager.Options.SaveManager_ConfigName.Value
 
+					if name:gsub(" ", "") == "" then 
+						return self.Library:Notify({
+							Title = "Interface",
+							Content = "Config loader",
+							SubContent = "Invalid config name (empty)",
+							Duration = 7
+						})
+					end
 
-				local name = SaveManager.Options.SaveManager_ConfigName.Value
+					local success, err = self:Save(name)
+					if not success then
+						return self.Library:Notify({
+							Title = "Interface",
+							Content = "Config loader",
+							SubContent = "Failed to save config: " .. tostring(err),
+							Duration = 7
+						})
+					end
 
-
-
-
-
-				if name:gsub(" ", "") == "" then 
-
-
-					return self.Library:Notify({
-
-
+					self.Library:Notify({
 						Title = "Interface",
-
-
 						Content = "Config loader",
-
-
-						SubContent = "Invalid config name (empty)",
-
-
+						SubContent = string.format("Created config %q", name),
 						Duration = 7
-
-
 					})
 
-
-				end
-
-
-
-
-
-				local success, err = self:Save(name)
-
-
-				if not success then
-
-
-					return self.Library:Notify({
-
-
-						Title = "Interface",
-
-
-						Content = "Config loader",
-
-
-						SubContent = "Failed to save config: " .. err,
-
-
-						Duration = 7
-
-
-					})
-
-
-				end
-
-
-
-
-
-				self.Library:Notify({
-
-
-					Title = "Interface",
-
-
-					Content = "Config loader",
-
-
-					SubContent = string.format("Created config %q", name),
-
-
-					Duration = 7
-
-
-				})
-
-
-
-
-
-				SaveManager.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-
-
-				SaveManager.Options.SaveManager_ConfigList:SetValue(nil)
-
-
+					SaveManager.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
+					SaveManager.Options.SaveManager_ConfigList:SetValue(nil)
+				end)
 			end
-
-
 		})
 
-
-
-
-
 		section:AddButton({Title = "Load config", Callback = function()
+			task.spawn(function()
+				local name = SaveManager.Options.SaveManager_ConfigList.Value
 
+				local success, err = self:Load(name)
+				if not success then
+					return self.Library:Notify({
+						Title = "Interface",
+						Content = "Config loader",
+						SubContent = "Failed to load config: " .. tostring(err),
+						Duration = 7
+					})
+				end
 
-			local name = SaveManager.Options.SaveManager_ConfigList.Value
-
-
-
-
-
-			local success, err = self:Load(name)
-
-
-			if not success then
-
-
-				return self.Library:Notify({
-
-
+				self.Library:Notify({
 					Title = "Interface",
-
-
 					Content = "Config loader",
-
-
-					SubContent = "Failed to load config: " .. err,
-
-
+					SubContent = string.format("Loaded config %q", name),
 					Duration = 7
-
-
 				})
-
-
-			end
-
-
-
-
-
-			self.Library:Notify({
-
-
-				Title = "Interface",
-
-
-				Content = "Config loader",
-
-
-				SubContent = string.format("Loaded config %q", name),
-
-
-				Duration = 7
-
-
-			})
-
-
+			end)
 		end})
 
-
-
-
-
 		section:AddButton({Title = "Save config", Callback = function()
+			task.spawn(function()
+				local name = SaveManager.Options.SaveManager_ConfigList.Value
 
+				local success, err = self:Save(name)
+				if not success then
+					return self.Library:Notify({
+						Title = "Interface",
+						Content = "Config loader",
+						SubContent = "Failed to overwrite config: " .. tostring(err),
+						Duration = 7
+					})
+				end
 
-			local name = SaveManager.Options.SaveManager_ConfigList.Value
-
-
-
-
-
-			local success, err = self:Save(name)
-
-
-			if not success then
-
-
-				return self.Library:Notify({
-
-
+				self.Library:Notify({
 					Title = "Interface",
-
-
 					Content = "Config loader",
-
-
-					SubContent = "Failed to overwrite config: " .. err,
-
-
+					SubContent = string.format("Overwrote config %q", name),
 					Duration = 7
-
-
 				})
-
-
-			end
-
-
-
-
-
-			self.Library:Notify({
-
-
-				Title = "Interface",
-
-
-				Content = "Config loader",
-
-
-				SubContent = string.format("Overwrote config %q", name),
-
-
-				Duration = 7
-
-
-			})
-
-
+			end)
 		end})
 
 
@@ -9682,6 +10211,8 @@ Library.CreateWindow = function(self, Config)
 
 
 	Library.Theme = Config.Theme or "Dark"
+	Creator.Theme = Library.Theme
+	Library.Sound = (Config.Sound == true)
 
 	if Config.BackgroundImage == nil then
 		Config.BackgroundImage = "rbxassetid://13196113628"
@@ -9788,11 +10319,10 @@ Library.CreateWindow = function(self, Config)
 
 
 		UserInfoSubtitle = Config.UserInfoSubtitle,
-
-
 		UserInfoSubtitleColor = Config.UserInfoSubtitleColor,
-
-
+		MinButton = Config.MinButton,
+		MinimizeButton = Config.MinimizeButton,
+		Minimize = Config.Minimize,
 	})
 
 
@@ -9829,22 +10359,34 @@ function Library:CreateMinimizer(Config)
 	Config = Config or {}
 
 
-	if self.Minimizer and self.Minimizer.Parent then
-
-
-		return self.Minimizer
-
-
-	end
-
-
-
-
-
 	local parentGui = Library.GUI or GUI
+	local safeRoots = {}
+	if gethui then pcall(function() table.insert(safeRoots, gethui()) end) end
+	pcall(function() table.insert(safeRoots, game:GetService("CoreGui")) end)
+	pcall(function() table.insert(safeRoots, game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")) end)
 
-
-	if parentGui then parentGui.DisplayOrder = 1000 end
+	for _, root in ipairs(safeRoots) do
+		for _, child in ipairs(root:GetChildren()) do
+			if child.Name == "FluentMinimizer" then
+				pcall(function() child:Destroy() end)
+			elseif child.Name == "FluentUI" and child ~= parentGui then
+				pcall(function() child:Destroy() end)
+			end
+		end
+		for _, desc in ipairs(root:GetDescendants()) do
+			if desc.Name == "FluentMinimizer" and (not parentGui or not desc:IsDescendantOf(parentGui)) then
+				pcall(function() desc:Destroy() end)
+			end
+		end
+	end
+	if parentGui then
+		parentGui.DisplayOrder = 1000
+		for _, child in ipairs(parentGui:GetChildren()) do
+			if child.Name == "FluentMinimizer" then
+				pcall(function() child:Destroy() end)
+			end
+		end
+	end
 
 
 	local isMobile = Mobile and true or false
@@ -9970,46 +10512,24 @@ function Library:CreateMinimizer(Config)
 			}),
 
 
-			New("ImageLabel", {
-
-
-				Name = "Icon",
-
-
-				Image = iconAsset,
-
-
-				Size = UDim2.new(0.8, 0, 0.8, 0),
-
-
-				Position = UDim2.new(0.5, 0, 0.5, 0),
-
-
-				AnchorPoint = Vector2.new(0.5, 0.5),
-
-
-				BackgroundTransparency = 1,
-
-
-				ThemeTag = {
-
-
-					ImageColor3 = "Text",
-
-
-				},
-
-
-			}, {
-
-
-				New("UIAspectRatioConstraint", { AspectRatio = 1, AspectType = Enum.AspectType.FitWithinMaxSize }),
-
-
-				New("UICorner", { CornerRadius = UDim.new(0, 0) })
-
-
-			}),
+			(function()
+				local miniIcon = New("ImageLabel", {
+					Name = "Icon",
+					Size = UDim2.new(0.65, 0, 0.65, 0),
+					Position = UDim2.new(0.5, 0, 0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundTransparency = 1,
+					ZIndex = 1000000005,
+					ThemeTag = {
+						ImageColor3 = "Text",
+					},
+				}, {
+					New("UIAspectRatioConstraint", { AspectRatio = 1, AspectType = Enum.AspectType.FitWithinMaxSize }),
+					New("UICorner", { CornerRadius = UDim.new(0, 0) })
+				})
+				Library:ApplyIcon(miniIcon, Config.Icon or iconAsset or "home")
+				return miniIcon
+			end)(),
 
 
 
@@ -10048,7 +10568,7 @@ function Library:CreateMinimizer(Config)
 			ZIndex = 999999999,
 
 
-			Visible = (Config.Visible ~= false),
+			Visible = (Config.Visible == true),
 
 
 		})
@@ -10078,7 +10598,7 @@ function Library:CreateMinimizer(Config)
 			ZIndex = 999999999,
 
 
-			Visible = (Config.Visible ~= false),
+			Visible = (Config.Visible == true),
 
 
 		})
@@ -10321,10 +10841,33 @@ function Library:CreateMinimizer(Config)
 
 
 
-	self.Minimizer = holder
+	local minimizerObj = setmetatable({
+		Frame = holder,
+		SetVisible = function(self, val)
+			holder.Visible = (val == true)
+		end,
+		Destroy = function(self)
+			pcall(function() holder:Destroy() end)
+			Library.Minimizer = nil
+		end,
+	}, {
+		__index = function(tbl, key)
+			if key == "Visible" then
+				return holder.Visible
+			end
+			return holder[key]
+		end,
+		__newindex = function(tbl, key, val)
+			if key == "Visible" then
+				holder.Visible = (val == true)
+				return
+			end
+			holder[key] = val
+		end,
+	})
 
-
-	return holder
+	self.Minimizer = minimizerObj
+	return minimizerObj
 
 
 end
@@ -10334,220 +10877,205 @@ end
 
 
 function Library:SetTheme(Value)
-
-
 	if Library.Window and table.find(Library.Themes, Value) then
-
-
 		Library.Theme = Value
-
-
+		Creator.Theme = Value
 		Creator.UpdateTheme()
 
-
-
-
-
 		if Value == "Glass" then
-
-
 			Library:SetWindowTransparency(0.9)
-
-
 		end
-
-
 	end
-
-
 end
-
-
-
-
 
 function Library:Destroy()
-	if Library.Window then
-		Library.Unloaded = true
-		if Library.UseAcrylic and Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
-			Library.Window.AcrylicPaint.Model:Destroy()
-		end
-		Creator.Disconnect()
+	Library.Unloaded = true
 
-        -- FIX: Prevent Memory Leaks by stopping all background Flipper motors
-        if Creator.TransparencyMotors then
-            for _, Motor in next, Creator.TransparencyMotors do
-                if type(Motor) == "table" and Motor.stop then Motor:stop() end
-            end
-            table.clear(Creator.TransparencyMotors)
-        end
-        if type(Creator.Registry) == "table" then
-            table.clear(Creator.Registry)
-        end
+	pcall(function()
+		Acrylic.Destroy()
+	end)
 
-		if Library.GUI then
-			Library.GUI:Destroy()
+	if Library.UseAcrylic and Library.Window and Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
+		pcall(function() Library.Window.AcrylicPaint.Model:Destroy() end)
+	end
+
+	if Library.BlurFolder then
+		pcall(function() Library.BlurFolder:Destroy() end)
+		Library.BlurFolder = nil
+	end
+
+	pcall(function()
+		local cam = workspace.CurrentCamera
+		if cam then
+			for _, child in ipairs(cam:GetChildren()) do
+				if child.Name == "FluentBlur" then
+					child:Destroy()
+				end
+			end
 		end
+	end)
+
+	if Library.Minimizer then
+		pcall(function()
+			local mObj = Library.Minimizer
+			local frame = (typeof(mObj) == "table" and mObj.Frame) or (typeof(mObj) == "Instance" and mObj)
+			if frame and frame.Parent then
+				frame:Destroy()
+			end
+		end)
+		Library.Minimizer = nil
+	end
+
+	Creator.Disconnect()
+
+	if Creator.TransparencyMotors then
+		for _, Motor in next, Creator.TransparencyMotors do
+			if type(Motor) == "table" and Motor.stop then Motor:stop() end
+		end
+		table.clear(Creator.TransparencyMotors)
+	end
+	if type(Creator.Registry) == "table" then
+		table.clear(Creator.Registry)
+	end
+	if Library.OpenFrames then
+		for _, frame in ipairs(Library.OpenFrames) do
+			if typeof(frame) == "Instance" and frame.Parent then
+				pcall(function() frame:Destroy() end)
+			end
+		end
+		table.clear(Library.OpenFrames)
+	end
+	if Library.ActiveNotifications then
+		table.clear(Library.ActiveNotifications)
+	end
+
+	if Library.GUI then
+		pcall(function() Library.GUI:Destroy() end)
+		Library.GUI = nil
 	end
 end
-
-
-
-
 
 function Library:ToggleAcrylic(Value)
-
-
 	if Library.Window then
-
-
-		if Library.UseAcrylic then
-
-
-			Library.Acrylic = Value
-
-
-			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
-
-
-				Library.Window.AcrylicPaint.Model.Transparency = Value and 0.95 or 1
-
-
+		Library.Acrylic = (Value == true)
+		if Library.Acrylic then
+			if Library.UseAcrylic then
+				Acrylic.Enable()
+				if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
+					local targetTrans = (Library.Theme == "Glass") and 0.85 or 0.98
+					Library.Window.AcrylicPaint.Model.Transparency = targetTrans
+				end
+				if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame then
+					local f = Library.Window.AcrylicPaint.Frame
+					local bg = f:FindFirstChild("Background")
+					if bg then
+						bg.BackgroundTransparency = (Library.Theme == "Glass") and 0.5 or 0.45
+						Creator.OverrideTag(bg, { BackgroundColor3 = "AcrylicMain" })
+					end
+					for _, child in ipairs(f:GetChildren()) do
+						if child.Name ~= "Background" and child.Name ~= "UICorner" then
+							if child:IsA("ImageLabel") or child:IsA("Frame") then
+								child.Visible = true
+							end
+						end
+					end
+				end
 			end
-
-
+		else
+			Acrylic.Disable()
+			Library.Acrylic = false
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
+				Library.Window.AcrylicPaint.Model.Transparency = 1
+				Library.Window.AcrylicPaint.Model.CFrame = CFrame.new(0, -999999, 0)
+			end
+			if Library.BlurFolder then
+				for _, child in ipairs(Library.BlurFolder:GetChildren()) do
+					if child:IsA("BasePart") then
+						child.Transparency = 1
+						child.CFrame = CFrame.new(0, -999999, 0)
+					end
+				end
+			end
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame then
+				local f = Library.Window.AcrylicPaint.Frame
+				local bg = f:FindFirstChild("Background")
+				if bg then
+					bg.BackgroundTransparency = 0
+					Creator.OverrideTag(bg, { BackgroundColor3 = "Background" })
+				end
+				for _, child in ipairs(f:GetChildren()) do
+					if child.Name ~= "Background" and child.Name ~= "UICorner" then
+						if child:IsA("ImageLabel") or child:IsA("Frame") then
+							child.Visible = false
+						end
+					end
+				end
+			end
 		end
-
-
 	end
-
-
 end
-
-
-
-
 
 function Library:ToggleTransparency(Value)
-
-
-	if Library.Window then
-
-
+	if Library.Window and Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame and Library.Window.AcrylicPaint.Frame:FindFirstChild("Background") then
 		Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = Value and 0.35 or 0
-
-
 	end
-
-
 end
 
-
 function Library:SetWindowTransparency(Value)
-
-
-	if Library.Window and Library.UseAcrylic then
-
-
+	if Library.Window and Library.UseAcrylic and Library.Acrylic then
 		Value = math.clamp(Value, 0, 3)
 
-
-
-
-
 		if Library.Theme == "Glass" then
-
-
 			local glassTransparency = 0.8 + (Value * 0.05)
-
-
 			if Value > 1 then
-
-
 				glassTransparency = 0.85 + ((Value - 1) * 0.04)
-
-
 			end
-
-
 			if Value > 2 then
-
-
 				glassTransparency = 0.93 + ((Value - 2) * 0.04)
-
-
 			end
 
-
-			Library.Window.AcrylicPaint.Model.Transparency = math.min(glassTransparency, 0.99)
-
-
-
-
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
+				if Library.Window.Root and (not Library.Window.Root.Visible or Library.Window.Minimized) then
+					Library.Window.AcrylicPaint.Model.Transparency = 1
+					Library.Window.AcrylicPaint.Model.CFrame = CFrame.new(0, -999999, 0)
+				else
+					Library.Window.AcrylicPaint.Model.Transparency = math.min(glassTransparency, 0.99)
+				end
+			end
 
 			local backgroundTransparency = 0.7 + (Value * 0.08)
-
-
 			if Value > 1 then
-
-
 				backgroundTransparency = 0.78 + ((Value - 1) * 0.07)
-
-
 			end
-
-
 			if Value > 2 then
-
-
 				backgroundTransparency = 0.85 + ((Value - 2) * 0.1)
-
-
 			end
 
-
-			Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = math.min(backgroundTransparency, 0.99)
-
-
-
-
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame and Library.Window.AcrylicPaint.Frame:FindFirstChild("Background") then
+				Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = math.min(backgroundTransparency, 0.99)
+			end
 
 			Library.NotificationTransparency = Value
 
-
-
-
-
 			for _, notification in pairs(Library.ActiveNotifications or {}) do
-
-
 				if notification and notification.ApplyTransparency then
-
-
 					notification:ApplyTransparency()
-
-
 				end
-
-
 			end
-
-
 		else
-
-
-			Library.Window.AcrylicPaint.Model.Transparency = 0.98
-
-
-			Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = Value * 0.3
-
-
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
+				if Library.Window.Root and (not Library.Window.Root.Visible or Library.Window.Minimized) then
+					Library.Window.AcrylicPaint.Model.Transparency = 1
+					Library.Window.AcrylicPaint.Model.CFrame = CFrame.new(0, -999999, 0)
+				else
+					Library.Window.AcrylicPaint.Model.Transparency = 0.98
+				end
+			end
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame and Library.Window.AcrylicPaint.Frame:FindFirstChild("Background") then
+				Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = Value * 0.3
+			end
 		end
-
-
 	end
-
-
 end
 
 
@@ -10555,11 +11083,7 @@ end
 
 
 function Library:Notify(Config)
-
-
 	return NotificationModule:New(Config)
-
-
 end
 
 
@@ -10567,591 +11091,12 @@ end
 
 
 if getgenv then
-
-
 	getgenv().Fluent = Library
-
-
 else
-
-
 	Fluent = Library
-
-
 end
-
-
-
-
-
-local MinimizeButton = New("TextButton", {
-
-
-	BackgroundColor3 = Color3.fromRGB(25, 25, 30),
-
-
-	Size = UDim2.new(1, 0, 1, 0),
-
-
-	BorderSizePixel = 0,
-
-
-	BackgroundTransparency = 0.05, 
-
-
-}, {
-
-
-	New("UICorner", {
-
-
-		CornerRadius = UDim.new(0, 14),
-
-
-	}),
-
-
-	New("UIGradient", {
-
-
-		Color = ColorSequence.new{
-
-
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 50)),
-
-
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
-
-
-		},
-
-
-		Rotation = 45,
-
-
-	}),
-
-
-	New("UIStroke", {
-
-
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-
-
-		Color = Color3.fromRGB(100, 150, 255),
-
-
-		Transparency = 0.6,
-
-
-		Thickness = 2,
-
-
-	}),
-
-
-	New("Frame", {
-
-
-		BackgroundColor3 = Color3.fromRGB(100, 150, 255),
-
-
-		BackgroundTransparency = 0.9,
-
-
-		Size = UDim2.new(1, -6, 1, -6),
-
-
-		Position = UDim2.new(0, 3, 0, 3),
-
-
-		BorderSizePixel = 0,
-
-
-	}, {
-
-
-		New("UICorner", {
-
-
-			CornerRadius = UDim.new(0, 11),
-
-
-		}),
-
-
-	}),
-
-
-	New("Frame", {
-
-
-		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-
-
-		BackgroundTransparency = 0.94,
-
-
-		Size = UDim2.new(0.7, 0, 0.3, 0),
-
-
-		Position = UDim2.new(0.15, 0, 0.1, 0),
-
-
-		BorderSizePixel = 0,
-
-
-	}, {
-
-
-		New("UICorner", {
-
-
-			CornerRadius = UDim.new(0, 8),
-
-
-		}),
-
-
-	}),
-
-
-	New("ImageLabel", {
-
-
-		Image = "rbxassetid://10734897102",
-
-
-		Size = UDim2.new(0.8, 0, 0.8, 0),
-
-
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-
-
-		AnchorPoint = Vector2.new(0.5, 0.5),
-
-
-		BackgroundTransparency = 1,
-
-
-		ImageColor3 = Color3.fromRGB(255, 255, 255),
-
-
-		ImageTransparency = 0.1,
-
-
-	}, {
-
-
-		New("UIAspectRatioConstraint", {
-
-
-			AspectRatio = 1,
-
-
-			AspectType = Enum.AspectType.FitWithinMaxSize,
-
-
-		})
-
-
-	})
-
-
-})
-
-
-
-
-
-local MobileMinimizeButton = New("TextButton", {
-
-
-	BackgroundColor3 = Color3.fromRGB(25, 25, 30),
-
-
-	Size = UDim2.new(1, 0, 1, 0),
-
-
-	BorderSizePixel = 0,
-
-
-	BackgroundTransparency = 0.05,
-
-
-}, {
-
-
-	New("UICorner", {
-
-
-		CornerRadius = UDim.new(0, 12),
-
-
-	}),
-
-
-	New("UIGradient", {
-
-
-		Color = ColorSequence.new{
-
-
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 50)),
-
-
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
-
-
-		},
-
-
-		Rotation = 45,
-
-
-	}),
-
-
-	New("UIStroke", {
-
-
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-
-
-		Color = Color3.fromRGB(100, 150, 255),
-
-
-		Transparency = 0.7,
-
-
-		Thickness = 1.5,
-
-
-	}),
-
-
-	New("Frame", {
-
-
-		BackgroundColor3 = Color3.fromRGB(100, 150, 255),
-
-
-		BackgroundTransparency = 0.92,
-
-
-		Size = UDim2.new(1, -4, 1, -4),
-
-
-		Position = UDim2.new(0, 2, 0, 2),
-
-
-		BorderSizePixel = 0,
-
-
-	}, {
-
-
-		New("UICorner", {
-
-
-			CornerRadius = UDim.new(0, 10),
-
-
-		}),
-
-
-	}),
-
-
-	New("ImageLabel", {
-
-
-		Image = "rbxassetid://10734897102",
-
-
-		Size = UDim2.new(0.8, 0, 0.8, 0),
-
-
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-
-
-		AnchorPoint = Vector2.new(0.5, 0.5),
-
-
-		BackgroundTransparency = 1,
-
-
-		ImageColor3 = Color3.fromRGB(255, 255, 255),
-
-
-		ImageTransparency = 0.1,
-
-
-	}, {
-
-
-		New("UIAspectRatioConstraint", {
-
-
-			AspectRatio = 1,
-
-
-			AspectType = Enum.AspectType.FitWithinMaxSize,
-
-
-		})
-
-
-	})
-
-
-})
-
-
-
-
-
-local Minimizer
-
-
-
-
-
-local isDragging = false
-
-
-local dragStart = nil
-
-
-local dragOffset = nil
-
-
-
-
-
-Creator.AddSignal(MinimizeButton.InputBegan, function(Input)
-
-
-	if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-
-
-		isDragging = true
-
-
-		dragStart = Vector2.new(Input.Position.X, Input.Position.Y)
-
-
-		dragOffset = (Library.Minimizer or Minimizer).Position
-
-
-
-
-
-		local connection
-
-
-		connection = Input.Changed:Connect(function()
-
-
-			if Input.UserInputState == Enum.UserInputState.End then
-
-
-				isDragging = false
-
-
-				dragStart = nil
-
-
-				dragOffset = nil
-
-
-				connection:Disconnect()
-
-
-			end
-
-
-		end)
-
-
-	end
-
-
-end)
-
-
-
-
-
-Creator.AddSignal(MobileMinimizeButton.InputBegan, function(Input)
-
-
-	if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-
-
-		isDragging = true
-
-
-		dragStart = Vector2.new(Input.Position.X, Input.Position.Y)
-
-
-		dragOffset = (Library.Minimizer or Minimizer).Position
-
-
-		local connection
-
-
-		connection = Input.Changed:Connect(function()
-
-
-			if Input.UserInputState == Enum.UserInputState.End then
-
-
-				isDragging = false
-
-
-				dragStart = nil
-
-
-				dragOffset = nil
-
-
-				connection:Disconnect()
-
-
-			end
-
-
-		end)
-
-
-	end
-
-
-end)
-
-
-
-
-
-local debugCount = 0
-
-
-Creator.AddSignal(RunService.Heartbeat, function()
-
-
-	local activeMin = Library.Minimizer or Minimizer
-
-
-	if isDragging and dragStart and dragOffset and activeMin and activeMin.Parent then
-
-
-		debugCount = debugCount + 1
-
-
-		if debugCount % 30 == 1 then
-
-
-		end
-
-
-		local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
-
-
-		local currentMousePos = Vector2.new(Mouse.X, Mouse.Y)
-
-
-		local delta = currentMousePos - dragStart
-
-
-		local newX = dragOffset.X.Offset + delta.X
-
-
-		local newY = dragOffset.Y.Offset + delta.Y
-
-
-		local viewportSize = workspace.Camera.ViewportSize
-
-
-		local minimizerSize = activeMin.AbsoluteSize
-
-
-
-
-
-		if newX < 0 then newX = 0 end
-
-
-		if newY < 0 then newY = 0 end
-
-
-		if newX > viewportSize.X - minimizerSize.X then 
-
-
-			newX = viewportSize.X - minimizerSize.X 
-
-
-		end
-
-
-		if newY > viewportSize.Y - minimizerSize.Y then 
-
-
-			newY = viewportSize.Y - minimizerSize.Y 
-
-
-		end
-
-
-		activeMin.Position = UDim2.new(0, newX, 0, newY)
-
-
-	end
-
-
-end)
-
-
-
-
-
-AddSignal(MinimizeButton.MouseButton1Click, function()
-
-
-	task.wait(0.1)
-
-
-	if not isDragging then
-
-
-		Library.Window:Minimize()
-
-
-	end
-
-
-end)
-
-
-
-
-
-AddSignal(MobileMinimizeButton.MouseButton1Click, function()
-
-
-	task.wait(0.1)
-
-
-	if not isDragging then
-
-
-		Library.Window:Minimize()
-
-
-	end
-
-
-end)
 
 if RunService:IsStudio() then task.wait(0.01) end
 return Library, SaveManager, InterfaceManager, Mobile
+
+

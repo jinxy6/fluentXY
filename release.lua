@@ -1268,6 +1268,14 @@ function Creator.AddThemeObject(Object, Properties)
 
 	Creator.Registry[Object] = Data
 	
+	pcall(function()
+		local dConn
+		dConn = Object.Destroying:Connect(function()
+			Creator.Registry[Object] = nil
+			pcall(function() dConn:Disconnect() end)
+		end)
+	end)
+	
 	for Property, ColorIdx in next, Data.Properties do
 		local themeValue = Creator.GetThemeProperty(ColorIdx)
 		if themeValue then
@@ -1676,7 +1684,20 @@ local function setupMiniMessageSupport(object, properties)
 	end)
 	
 	table.insert(TextElementConnections, connection)
-	TextElements[object] = true
+	TextElements[object] = connection
+
+	pcall(function()
+		local dConn
+		dConn = object.Destroying:Connect(function()
+			pcall(function() connection:Disconnect() end)
+			pcall(function() dConn:Disconnect() end)
+			local cIdx = table.find(TextElementConnections, connection)
+			if cIdx then
+				table.remove(TextElementConnections, cIdx)
+			end
+			TextElements[object] = nil
+		end)
+	end)
 	
 	if object.Text then
 		local converted = convertTextIfNeeded(object.Text)
@@ -1747,6 +1768,9 @@ function Creator.SpringMotor(Initial, Instance, Prop, IgnoreDialogCheck, ResetOn
 
 	return Motor, SetValue
 end
+
+Creator.TextElements = TextElements
+Creator.TextElementConnections = TextElementConnections
 
 Library.Creator = Creator
 
@@ -3579,6 +3603,8 @@ Components.Dialog = (function()
 		})
 
 		local TintMotor, TintTransparency = Creator.SpringMotor(1, NewDialog.TintFrame, "BackgroundTransparency", true)
+		NewDialog.Signals = {}
+		NewDialog.Motors = { TintMotor }
 
 		NewDialog.ButtonHolder = New("Frame", {
 			Size = UDim2.new(1, -40, 1, -40),
@@ -3634,6 +3660,7 @@ Components.Dialog = (function()
 		})
 
 		local ScaleMotor, Scale = Creator.SpringMotor(1.1, NewDialog.Scale, "Scale")
+		table.insert(NewDialog.Motors, ScaleMotor)
 
 		NewDialog.Root = New("CanvasGroup", {
 			Size = UDim2.fromOffset(300, 165),
@@ -3660,6 +3687,7 @@ Components.Dialog = (function()
 		})
 
 		local RootMotor, RootTransparency = Creator.SpringMotor(1, NewDialog.Root, "GroupTransparency")
+		table.insert(NewDialog.Motors, RootMotor)
 
 		function NewDialog:Open()
 			Library.DialogOpen = true
@@ -3670,14 +3698,33 @@ Components.Dialog = (function()
 		end
 
 		function NewDialog:Close()
+			if NewDialog.Closed then return end
+			NewDialog.Closed = true
 			Library.DialogOpen = false
 			TintTransparency(1)
 			RootTransparency(1)
 			Scale(1.1)
-			NewDialog.Root.UIStroke:Destroy()
-			task.wait(0.15)
-			NewDialog.TintFrame:Destroy()
+			if NewDialog.Root and NewDialog.Root:FindFirstChild("UIStroke") then
+				pcall(function() NewDialog.Root.UIStroke:Destroy() end)
+			end
+			for _, sig in ipairs(NewDialog.Signals or {}) do
+				pcall(function() sig:Disconnect() end)
+			end
+			table.clear(NewDialog.Signals)
+			task.delay(0.2, function()
+				for _, motor in ipairs(NewDialog.Motors or {}) do
+					pcall(function() motor:stop() end)
+				end
+				table.clear(NewDialog.Motors)
+				if NewDialog.TintFrame then
+					pcall(function() NewDialog.TintFrame:Destroy() end)
+				end
+			end)
 		end
+
+		NewDialog.TintFrame.Destroying:Connect(function()
+			NewDialog:Close()
+		end)
 
 		function NewDialog:Button(Title, Callback)
 			NewDialog.Buttons = NewDialog.Buttons + 1
@@ -3694,12 +3741,12 @@ Components.Dialog = (function()
 				end
 			end
 
-			Creator.AddSignal(Button.Frame.MouseButton1Click, function()
+			table.insert(NewDialog.Signals, Button.Frame.MouseButton1Click:Connect(function()
 				Library:SafeCallback(Callback)
 				pcall(function()
 					NewDialog:Close()
 				end)
-			end)
+			end))
 
 			return Button
 		end
@@ -3846,6 +3893,7 @@ Components.Notification = (function()
 		})
 
 		local ButtonsHolder
+		NewNotification.Signals = {}
 		local hasButtons = type(Config.Buttons) == "table" and #Config.Buttons > 0
 		if hasButtons then
 			local btnList = {
@@ -3876,12 +3924,12 @@ Components.Notification = (function()
 						ThemeTag = { Color = "DialogButtonBorder" },
 					}),
 				})
-				Creator.AddSignal(btn.MouseButton1Click, function()
+				table.insert(NewNotification.Signals, btn.MouseButton1Click:Connect(function()
 					if btnData.Callback then
 						pcall(btnData.Callback)
 					end
 					NewNotification:Close()
-				end)
+				end))
 				table.insert(btnList, btn)
 			end
 			ButtonsHolder = New("Frame", {
@@ -3943,9 +3991,9 @@ Components.Notification = (function()
 			NewNotification.Root.Position = UDim2.new(Values.Scale, Values.Offset, 0, 0)
 		end)
 
-		Creator.AddSignal(NewNotification.CloseButton.MouseButton1Click, function()
+		table.insert(NewNotification.Signals, NewNotification.CloseButton.MouseButton1Click:Connect(function()
 			NewNotification:Close()
-		end)
+		end))
 
 		function NewNotification:ApplyTransparency()
 			if Library.Theme == "Glass" and Library.UseAcrylic then
@@ -3996,6 +4044,11 @@ Components.Notification = (function()
 			if not NewNotification.Closed then
 				NewNotification.Closed = true
 
+				for _, sig in ipairs(NewNotification.Signals or {}) do
+					pcall(function() sig:Disconnect() end)
+				end
+				table.clear(NewNotification.Signals)
+
 				for i, notif in pairs(Library.ActiveNotifications or {}) do
 					if notif == NewNotification then
 						table.remove(Library.ActiveNotifications, i)
@@ -4009,10 +4062,13 @@ Components.Notification = (function()
 						Offset = Spring(60, { frequency = 7.5, dampingRatio = 0.85 }),
 					})
 					task.wait(0.25)
-					if Library.UseAcrylic then
-						NewNotification.AcrylicPaint.Model:Destroy()
+					pcall(function() RootMotor:stop() end)
+					if Library.UseAcrylic and NewNotification.AcrylicPaint and NewNotification.AcrylicPaint.Model then
+						pcall(function() NewNotification.AcrylicPaint.Model:Destroy() end)
 					end
-					NewNotification.Holder:Destroy()
+					if NewNotification.Holder then
+						pcall(function() NewNotification.Holder:Destroy() end)
+					end
 				end)
 			end
 		end
@@ -6730,6 +6786,24 @@ ElementsTable.Dropdown = (function()
 			local Values = Dropdown.Values
 			local Buttons = {}
 
+			if Dropdown._OptionSignals then
+				for _, sig in ipairs(Dropdown._OptionSignals) do
+					pcall(function() sig:Disconnect() end)
+				end
+				table.clear(Dropdown._OptionSignals)
+			else
+				Dropdown._OptionSignals = {}
+			end
+
+			if Dropdown._OptionMotors then
+				for _, motor in ipairs(Dropdown._OptionMotors) do
+					pcall(function() motor:stop() end)
+				end
+				table.clear(Dropdown._OptionMotors)
+			else
+				Dropdown._OptionMotors = {}
+			end
+
 			for _, Element in next, DropdownScrollFrame:GetChildren() do
 				if not Element:IsA("UIListLayout") then
 					Element:Destroy()
@@ -6803,22 +6877,26 @@ ElementsTable.Dropdown = (function()
 				local SelMotor, SetSelTransparency = Creator.SpringMotor(1, ButtonSelector, "BackgroundTransparency")
 				local SelectorSizeMotor = Flipper.SingleMotor.new(6)
 
+				table.insert(Dropdown._OptionMotors, BackMotor)
+				table.insert(Dropdown._OptionMotors, SelMotor)
+				table.insert(Dropdown._OptionMotors, SelectorSizeMotor)
+
 				SelectorSizeMotor:onStep(function(value)
 					ButtonSelector.Size = UDim2.new(0, 4, 0, value)
 				end)
 
-				Creator.AddSignal(Button.MouseEnter, function()
+				table.insert(Dropdown._OptionSignals, Button.MouseEnter:Connect(function()
 					SetBackTransparency(Selected and 0.85 or 0.89)
-				end)
-				Creator.AddSignal(Button.MouseLeave, function()
+				end))
+				table.insert(Dropdown._OptionSignals, Button.MouseLeave:Connect(function()
 					SetBackTransparency(Selected and 0.89 or 1)
-				end)
-				Creator.AddSignal(Button.MouseButton1Down, function()
+				end))
+				table.insert(Dropdown._OptionSignals, Button.MouseButton1Down:Connect(function()
 					SetBackTransparency(0.92)
-				end)
-				Creator.AddSignal(Button.MouseButton1Up, function()
+				end))
+				table.insert(Dropdown._OptionSignals, Button.MouseButton1Up:Connect(function()
 					SetBackTransparency(Selected and 0.85 or 0.89)
-				end)
+				end))
 
 				function Table:UpdateButton()
 					if Config.Multi then
@@ -6834,7 +6912,7 @@ ElementsTable.Dropdown = (function()
 					SelectorSizeMotor:setGoal(Flipper.Spring.new(Selected and 14 or 6, { frequency = 6 }))
 					SetSelTransparency(Selected and 0 or 1)
 				end
-				AddSignal(Button.Activated, function()
+				table.insert(Dropdown._OptionSignals, Button.Activated:Connect(function()
 					local Try = not Selected
 
 					if Dropdown:GetActiveValues() == 1 and not Try and not Config.AllowNull then
@@ -6858,7 +6936,7 @@ ElementsTable.Dropdown = (function()
 						Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
 						Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
 					end
-				end)
+				end))
 
 				Table:UpdateButton()
 				Dropdown:Display()
@@ -6920,9 +6998,34 @@ ElementsTable.Dropdown = (function()
 		end
 
 		function Dropdown:Destroy()
+			if Dropdown._OptionSignals then
+				for _, sig in ipairs(Dropdown._OptionSignals) do
+					pcall(function() sig:Disconnect() end)
+				end
+				table.clear(Dropdown._OptionSignals)
+			end
+			if Dropdown._OptionMotors then
+				for _, motor in ipairs(Dropdown._OptionMotors) do
+					pcall(function() motor:stop() end)
+				end
+				table.clear(Dropdown._OptionMotors)
+			end
+			for i, frame in ipairs(Library.OpenFrames or {}) do
+				if frame == DropdownHolderCanvas then
+					table.remove(Library.OpenFrames, i)
+					break
+				end
+			end
+			if DropdownHolderCanvas then
+				pcall(function() DropdownHolderCanvas:Destroy() end)
+			end
 			DropdownFrame:Destroy()
 			Library.Options[Idx] = nil
 		end
+
+		DropdownFrame.Destroying:Connect(function()
+			Dropdown:Destroy()
+		end)
 
 		Dropdown:BuildDropdownList()
 		Dropdown:Display()
@@ -7877,7 +7980,7 @@ ElementsTable.Colorpicker = (function()
 				end
 			end
 
-			Creator.AddSignal(HexInput.Input.FocusLost, function(Enter)
+			table.insert(Dialog.Signals, HexInput.Input.FocusLost:Connect(function(Enter)
 				if Enter then
 					local Success, Result = pcall(Color3.fromHex, HexInput.Input.Text)
 					if Success and typeof(Result) == "Color3" then
@@ -7885,9 +7988,9 @@ ElementsTable.Colorpicker = (function()
 					end
 				end
 				Display()
-			end)
+			end))
 
-			Creator.AddSignal(RedInput.Input.FocusLost, function(Enter)
+			table.insert(Dialog.Signals, RedInput.Input.FocusLost:Connect(function(Enter)
 				if Enter then
 					local CurrentColor = GetRGB()
 					local Success, Result = pcall(Color3.fromRGB, RedInput.Input.Text, CurrentColor["G"], CurrentColor["B"])
@@ -7898,9 +8001,9 @@ ElementsTable.Colorpicker = (function()
 					end
 				end
 				Display()
-			end)
+			end))
 
-			Creator.AddSignal(GreenInput.Input.FocusLost, function(Enter)
+			table.insert(Dialog.Signals, GreenInput.Input.FocusLost:Connect(function(Enter)
 				if Enter then
 					local CurrentColor = GetRGB()
 					local Success, Result =
@@ -7912,9 +8015,9 @@ ElementsTable.Colorpicker = (function()
 					end
 				end
 				Display()
-			end)
+			end))
 
-			Creator.AddSignal(BlueInput.Input.FocusLost, function(Enter)
+			table.insert(Dialog.Signals, BlueInput.Input.FocusLost:Connect(function(Enter)
 				if Enter then
 					local CurrentColor = GetRGB()
 					local Success, Result =
@@ -7926,10 +8029,10 @@ ElementsTable.Colorpicker = (function()
 					end
 				end
 				Display()
-			end)
+			end))
 
 			if Config.Transparency then
-				Creator.AddSignal(AlphaInput.Input.FocusLost, function(Enter)
+				table.insert(Dialog.Signals, AlphaInput.Input.FocusLost:Connect(function(Enter)
 					if Enter then
 						pcall(function()
 							local Value = tonumber(AlphaInput.Input.Text)
@@ -7939,10 +8042,10 @@ ElementsTable.Colorpicker = (function()
 						end)
 					end
 					Display()
-				end)
+				end))
 			end
 
-			Creator.AddSignal(SatVibMap.InputBegan, function(Input)
+			table.insert(Dialog.Signals, SatVibMap.InputBegan:Connect(function(Input)
 				if
 					Input.UserInputType == Enum.UserInputType.MouseButton1
 					or Input.UserInputType == Enum.UserInputType.Touch
@@ -7963,9 +8066,9 @@ ElementsTable.Colorpicker = (function()
 						RenderStepped:Wait()
 					end
 				end
-			end)
+			end))
 
-			Creator.AddSignal(HueSlider.InputBegan, function(Input)
+			table.insert(Dialog.Signals, HueSlider.InputBegan:Connect(function(Input)
 				if
 					Input.UserInputType == Enum.UserInputType.MouseButton1
 					or Input.UserInputType == Enum.UserInputType.Touch
@@ -7981,10 +8084,10 @@ ElementsTable.Colorpicker = (function()
 						RenderStepped:Wait()
 					end
 				end
-			end)
+			end))
 
 			if Config.Transparency then
-				Creator.AddSignal(TransparencySlider.InputBegan, function(Input)
+				table.insert(Dialog.Signals, TransparencySlider.InputBegan:Connect(function(Input)
 					if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 						while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
 							local MinY = TransparencySlider.AbsolutePosition.Y
@@ -7997,7 +8100,7 @@ ElementsTable.Colorpicker = (function()
 							RenderStepped:Wait()
 						end
 					end
-				end)
+				end))
 			end
 
 			Display()
@@ -11035,12 +11138,54 @@ function Library:Destroy()
 
 	Creator.Disconnect()
 
+	if Creator.TextElementConnections then
+		for _, conn in ipairs(Creator.TextElementConnections) do
+			pcall(function() conn:Disconnect() end)
+		end
+		table.clear(Creator.TextElementConnections)
+	end
+	if Creator.TextElements then
+		table.clear(Creator.TextElements)
+	end
+
 	if Creator.TransparencyMotors then
 		for _, Motor in next, Creator.TransparencyMotors do
 			if type(Motor) == "table" and Motor.stop then Motor:stop() end
 		end
 		table.clear(Creator.TransparencyMotors)
 	end
+
+	local function stopWindowMotors(win)
+		if not win then return end
+		if win.SizeMotor and win.SizeMotor.stop then pcall(function() win.SizeMotor:stop() end) end
+		if win.PosMotor and win.PosMotor.stop then pcall(function() win.PosMotor:stop() end) end
+		if win.SelectorPosMotor and win.SelectorPosMotor.stop then pcall(function() win.SelectorPosMotor:stop() end) end
+		if win.SelectorSizeMotor and win.SelectorSizeMotor.stop then pcall(function() win.SelectorSizeMotor:stop() end) end
+		if win.TabModule and win.TabModule.Tabs then
+			for _, tab in pairs(win.TabModule.Tabs) do
+				if tab.ContainerXMotor and tab.ContainerXMotor.stop then pcall(function() tab.ContainerXMotor:stop() end) end
+				if tab.ContainerTransparencyMotor and tab.ContainerTransparencyMotor.stop then pcall(function() tab.ContainerTransparencyMotor:stop() end) end
+				if tab.Motor and tab.Motor.stop then pcall(function() tab.Motor:stop() end) end
+			end
+		end
+	end
+
+	stopWindowMotors(Library.Window)
+	if Library.Windows then
+		for _, win in ipairs(Library.Windows) do
+			stopWindowMotors(win)
+		end
+		table.clear(Library.Windows)
+	end
+	Library.Window = nil
+
+	if Library.Options then
+		table.clear(Library.Options)
+	end
+	if Library.Flags then
+		table.clear(Library.Flags)
+	end
+
 	if type(Creator.Registry) == "table" then
 		table.clear(Creator.Registry)
 	end

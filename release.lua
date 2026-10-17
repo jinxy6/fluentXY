@@ -7,6 +7,7 @@
  |_|    |_|\__,_|\___|_| |_|\__| /_/ \_\   |_|   
 
  FluentXY UI Library
+ Customized for Kovak
 ]]
 
 -- Global thread hooking removed because it breaks CoreGui / UI Library capabilities.
@@ -3376,6 +3377,12 @@ Components.Tab = (function()
 		Window.TabDisplay.Text = TabModule.Tabs[Tab].Name
 		Window.SelectorPosMotor:setGoal(Spring(TabModule:GetCurrentTabPos(), { frequency = 12, dampingRatio = 0.85 }))
 
+		if Window.UpdateElementVisibility and Window.SearchInput and Window.SearchInput.Text ~= "" then
+			task.defer(function()
+				Window.UpdateElementVisibility(Window.SearchInput.Text)
+			end)
+		end
+
 		if PreviousTab > 0 and PreviousTab ~= Tab and TabModule.Tabs[PreviousTab] and TabModule.Tabs[Tab] then
 			local OldContainer = TabModule.Tabs[PreviousTab].ContainerAnim
 			local NewContainer = TabModule.Tabs[Tab].ContainerAnim
@@ -4527,14 +4534,32 @@ Components.Window = (function()
 			
 			local matchedSectionFrames = {}
 			local elementsInMatchedSections = {}
-			local matchingTabContainers = {}
 			local matchingTabIndices = {}
-			
+
+			local function getTabIndex(obj)
+				if not TabMod or not TabMod.Tabs then return nil end
+				local p = obj
+				while p do
+					for idx, tabObj in pairs(TabMod.Tabs) do
+						if tabObj and (p == tabObj.ContainerAnim or p == tabObj.Container or p == tabObj.ContainerFrame) then
+							return idx
+						end
+					end
+					p = p.Parent
+				end
+				return nil
+			end
+
 			for element, data in pairs(AllElements) do
 				if element and element.Parent and data.type == "Section" then
 					local title = tostring(data.title or "")
 					if checkMatch(title, normalizedQuery) then
 						matchedSectionFrames[element] = true
+						local tIdx = data.tabIndex or getTabIndex(element)
+						if tIdx then
+							data.tabIndex = tIdx
+							matchingTabIndices[tIdx] = true
+						end
 						local container = element:FindFirstChild("Container")
 						if container then
 							for _, child in pairs(container:GetChildren()) do
@@ -4546,7 +4571,7 @@ Components.Window = (function()
 					end
 				end
 			end
-			
+
 			for element, data in pairs(AllElements) do
 				if element and element.Parent and data.type ~= "Section" then
 					local title = tostring(data.title or "")
@@ -4554,44 +4579,30 @@ Components.Window = (function()
 					local isMatch = checkMatch(title, normalizedQuery)
 						or (desc ~= "" and checkMatch(desc, normalizedQuery))
 						or elementsInMatchedSections[element] == true
-					
+
 					if not isMatch and data.section and matchedSectionFrames[data.section] then
 						isMatch = true
 					end
-					
+
 					element.Visible = isMatch
-					
+
 					if isMatch then
-						local tCont = data.tabContainer
-						if not tCont then
-							local p = element.Parent
-							while p do
-								if p.Parent == Window.ContainerHolder then
-									tCont = p
-									data.tabContainer = p
-									break
-								end
-								p = p.Parent
-							end
-						end
-						if tCont then
-							matchingTabContainers[tCont] = true
+						local tIdx = data.tabIndex or getTabIndex(element)
+						if tIdx then
+							data.tabIndex = tIdx
+							matchingTabIndices[tIdx] = true
 						end
 					end
 				end
 			end
-			
+
 			if TabMod and TabMod.Tabs then
 				for idx, tabObj in pairs(TabMod.Tabs) do
-					if tabObj then
-						local matchesByName = tabObj.Name and checkMatch(tabObj.Name, normalizedQuery)
-						local matchesByElements = (tabObj.ContainerAnim and matchingTabContainers[tabObj.ContainerAnim]) or (tabObj.Container and matchingTabContainers[tabObj.Container])
-						if matchesByName or matchesByElements then
-							matchingTabIndices[idx] = true
-						end
+					if tabObj and tabObj.Name and checkMatch(tabObj.Name, normalizedQuery) then
+						matchingTabIndices[idx] = true
 					end
 				end
-				
+
 				local firstMatchingIdx = nil
 				for idx, tabObj in pairs(TabMod.Tabs) do
 					if tabObj and tabObj.Frame then
@@ -4602,12 +4613,12 @@ Components.Window = (function()
 						end
 					end
 				end
-				
+
 				if firstMatchingIdx and not matchingTabIndices[TabMod.SelectedTab] then
 					TabMod:SelectTab(firstMatchingIdx)
 				end
 			end
-			
+
 			for element, data in pairs(AllElements) do
 				if element and element.Parent and data.type == "Section" then
 					local sCont = element:FindFirstChild("Container")
@@ -4628,6 +4639,19 @@ Components.Window = (function()
 					end
 				end
 			end
+
+			task.defer(function()
+				if TabMod and TabMod.Tabs and TabMod.Tabs[TabMod.SelectedTab] then
+					local curTab = TabMod.Tabs[TabMod.SelectedTab]
+					local scroll = curTab.Container or curTab.ContainerFrame
+					if scroll then
+						local cLayout = scroll:FindFirstChild("UIListLayout")
+						if cLayout then
+							scroll.CanvasSize = UDim2.new(0, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
+						end
+					end
+				end
+			end)
 		end
 
 		local function RegisterElement(elementFrame, title, elementType, description)
@@ -4687,7 +4711,7 @@ Components.Window = (function()
 
 		local searchOffset = hasImage and (imageSize + 10 + topOffset) or topOffset
 		local tabHolderTop = Window.ShowSearch and 34 or 0
-		local userInfoBottomPad = Config.UserInfo and 56 or 4
+		local userInfoBottomPad = Config.UserInfo and 48 or 4
 		Window.TabHolderTop = tabHolderTop
 
 		Window.TabHolder = New("ScrollingFrame", {
@@ -4702,6 +4726,12 @@ Components.Window = (function()
 		}, {
 			New("UIListLayout", {
 				Padding = UDim.new(0, 4),
+			}),
+			New("UIPadding", {
+				PaddingTop = UDim.new(0, 2),
+				PaddingBottom = UDim.new(0, 4),
+				PaddingLeft = UDim.new(0, 0),
+				PaddingRight = UDim.new(0, 0),
 			}),
 		})
 
@@ -4785,6 +4815,7 @@ Components.Window = (function()
 		Window.AllElements = AllElements
 		Window.RegisterElement = RegisterElement
 		Window.UpdateElementVisibility = UpdateElementVisibility
+		Window.SearchInput = SearchInput
 
 		local imageSize = Window.TabWidth - 24
 		local topOffset = Window.TopOffset or 25
@@ -5045,7 +5076,7 @@ Components.Window = (function()
 
 			local tabTop = Window.ShowSearch and 34 or 0
 			Window.TabHolder.Position = UDim2.new(0, 0, 0, tabTop)
-			Window.TabHolder.Size = UDim2.new(1, 0, 1, -(tabTop + 52))
+			Window.TabHolder.Size = UDim2.new(1, 0, 1, -(tabTop + 48))
 		end
 
 		if Library.UseAcrylic then
@@ -5580,7 +5611,7 @@ Components.Window = (function()
 			end
 			SearchFrame.Visible = Window.ShowSearch
 			local tabTop = Window.ShowSearch and 34 or 0
-			local bottomPad = Config.UserInfo and 52 or 4
+			local bottomPad = Config.UserInfo and 48 or 4
 			Window.TabHolder.Position = UDim2.new(0, 0, 0, tabTop)
 			Window.TabHolder.Size = UDim2.new(1, 0, 1, -(tabTop + bottomPad))
 			Window.TabHolderTop = tabTop
@@ -5799,6 +5830,7 @@ Components.Window = (function()
 		end
 
 		local TabModule = Components.Tab:Init(Window)
+		Window.TabModule = TabModule
 		function Window:AddTab(TabConfig)
 			local tab = TabModule:New(TabConfig.Title, TabConfig.Icon, Window.TabHolder)
 			return tab

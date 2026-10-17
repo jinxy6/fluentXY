@@ -4535,6 +4535,9 @@ Components.Window = (function()
 			local matchedSectionFrames = {}
 			local elementsInMatchedSections = {}
 			local matchingTabIndices = {}
+			local bestElement = nil
+			local bestScore = -1
+			local bestTabIdx = nil
 
 			local function getTabIndex(obj)
 				if not TabMod or not TabMod.Tabs then return nil end
@@ -4548,6 +4551,27 @@ Components.Window = (function()
 					p = p.Parent
 				end
 				return nil
+			end
+
+			local function scoreMatch(title, desc, query)
+				local tLower = string.lower(title or "")
+				local dLower = string.lower(desc or "")
+				local qLower = string.lower(query)
+
+				if tLower == qLower then
+					return 1000
+				elseif string.sub(tLower, 1, #qLower) == qLower then
+					return 800
+				elseif string.find(tLower, "%f[%a]" .. qLower) then
+					return 600
+				elseif string.find(tLower, qLower, 1, true) then
+					return 400
+				elseif checkMatch(tLower, qLower) then
+					return 200
+				elseif dLower ~= "" and string.find(dLower, qLower, 1, true) then
+					return 100
+				end
+				return 10
 			end
 
 			for element, data in pairs(AllElements) do
@@ -4591,6 +4615,25 @@ Components.Window = (function()
 						if tIdx then
 							data.tabIndex = tIdx
 							matchingTabIndices[tIdx] = true
+							local score = scoreMatch(title, desc, normalizedQuery)
+							if score > bestScore or (score == bestScore and TabMod and tIdx == TabMod.SelectedTab) then
+								bestScore = score
+								bestElement = element
+								bestTabIdx = tIdx
+							end
+						end
+					end
+				end
+			end
+
+			if not bestTabIdx then
+				for element, data in pairs(AllElements) do
+					if element and element.Parent and data.type == "Section" and matchedSectionFrames[element] then
+						local tIdx = data.tabIndex or getTabIndex(element)
+						if tIdx then
+							bestTabIdx = tIdx
+							bestElement = element
+							break
 						end
 					end
 				end
@@ -4600,22 +4643,22 @@ Components.Window = (function()
 				for idx, tabObj in pairs(TabMod.Tabs) do
 					if tabObj and tabObj.Name and checkMatch(tabObj.Name, normalizedQuery) then
 						matchingTabIndices[idx] = true
-					end
-				end
-
-				local firstMatchingIdx = nil
-				for idx, tabObj in pairs(TabMod.Tabs) do
-					if tabObj and tabObj.Frame then
-						local isTabVisible = matchingTabIndices[idx] == true
-						tabObj.Frame.Visible = isTabVisible
-						if isTabVisible and not firstMatchingIdx then
-							firstMatchingIdx = idx
+						if not bestTabIdx then
+							bestTabIdx = idx
 						end
 					end
 				end
 
-				if firstMatchingIdx and not matchingTabIndices[TabMod.SelectedTab] then
-					TabMod:SelectTab(firstMatchingIdx)
+				for idx, tabObj in pairs(TabMod.Tabs) do
+					if tabObj and tabObj.Frame then
+						local isTabVisible = matchingTabIndices[idx] == true
+						tabObj.Frame.Visible = isTabVisible
+					end
+				end
+
+				-- Automatically change tab to the matched feature
+				if bestTabIdx and bestTabIdx ~= TabMod.SelectedTab then
+					TabMod:SelectTab(bestTabIdx)
 				end
 			end
 
@@ -4633,6 +4676,7 @@ Components.Window = (function()
 						element.Visible = hasVis or matchedSectionFrames[element] == true
 						if element.Visible and sCont:FindFirstChild("UIListLayout") then
 							local sLayout = sCont:FindFirstChild("UIListLayout")
+							sCont.Visible = true
 							sCont.Size = UDim2.new(1, 0, 0, sLayout.AbsoluteContentSize.Y)
 							element.Size = UDim2.new(1, 0, 0, sLayout.AbsoluteContentSize.Y + 25)
 						end
@@ -4640,18 +4684,46 @@ Components.Window = (function()
 				end
 			end
 
-			task.defer(function()
-				if TabMod and TabMod.Tabs and TabMod.Tabs[TabMod.SelectedTab] then
-					local curTab = TabMod.Tabs[TabMod.SelectedTab]
-					local scroll = curTab.Container or curTab.ContainerFrame
-					if scroll then
-						local cLayout = scroll:FindFirstChild("UIListLayout")
-						if cLayout then
-							scroll.CanvasSize = UDim2.new(0, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
-						end
-					end
+			local targetTabIdx = bestTabIdx or (TabMod and TabMod.SelectedTab)
+			local scrollToElement = bestElement
+
+			local function scrollToTarget()
+				if not TabMod or not TabMod.Tabs or not targetTabIdx then return end
+				local curTab = TabMod.Tabs[targetTabIdx]
+				if not curTab then return end
+				local scroll = curTab.Container or curTab.ContainerFrame
+				if not scroll then return end
+
+				local cLayout = scroll:FindFirstChild("UIListLayout")
+				if cLayout then
+					scroll.CanvasSize = UDim2.new(0, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
 				end
-			end)
+
+				if scrollToElement and scrollToElement.Parent then
+					local elemY = scrollToElement.AbsolutePosition.Y
+					local scrollY = scroll.AbsolutePosition.Y
+					local targetY = math.max(0, elemY - scrollY + scroll.CanvasPosition.Y - 14)
+					TweenService:Create(scroll, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						CanvasPosition = Vector2.new(0, targetY)
+					}):Play()
+
+					pcall(function()
+						local origTrans = scrollToElement.BackgroundTransparency
+						TweenService:Create(scrollToElement, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							BackgroundTransparency = 0.55
+						}):Play()
+						task.delay(0.7, function()
+							if scrollToElement and scrollToElement.Parent then
+								TweenService:Create(scrollToElement, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+									BackgroundTransparency = origTrans
+								}):Play()
+							end
+						end)
+					end)
+				end
+			end
+
+			task.delay(0.08, scrollToTarget)
 		end
 
 		local function RegisterElement(elementFrame, title, elementType, description)
@@ -4801,6 +4873,9 @@ Components.Window = (function()
 		end)
 
 		Creator.AddSignal(SearchTextbox.Input.FocusLost, function(enterPressed)
+			if enterPressed then
+				UpdateElementVisibility(SearchTextbox.Input.Text or "")
+			end
 		end)
 
 		Creator.AddSignal(UserInputService.InputBegan, function(input, gameProcessed)

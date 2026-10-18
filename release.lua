@@ -2929,6 +2929,14 @@ Components.Tab = (function()
 		TabModule.Containers[TabIndex] = Tab.ContainerAnim
 		TabModule.Tabs[TabIndex] = Tab
 
+		if TabModule.TabCount == 1 then
+			task.defer(function()
+				if TabModule.SelectedTab == 0 then
+					TabModule:SelectTab(1)
+				end
+			end)
+		end
+
 		Tab.Container = Tab.ContainerFrame
 		Tab.ScrollFrame = Tab.Container
 
@@ -3461,6 +3469,19 @@ Components.Tab = (function()
 				end)
 
 				task.wait(0.2)
+				if TabModule.CurrentAnimationTab == Tab then
+					if NewContainer and NewContainer.Parent then
+						NewContainer.Visible = true
+						NewContainer.Position = UDim2.fromOffset(0, 0)
+						NewContainer.GroupTransparency = 0
+					end
+					if NewTab and NewTab.ContainerXMotor and NewTab.ContainerTransparencyMotor then
+						pcall(function()
+							NewTab.ContainerXMotor:setGoal(Instant(0))
+							NewTab.ContainerTransparencyMotor:setGoal(Instant(0))
+						end)
+					end
+				end
 				if TabModule.CurrentAnimationTab == Tab and TabModule.Tabs[PreviousTab] then
 					local oCont = TabModule.Tabs[PreviousTab].ContainerAnim
 					local oTab = TabModule.Tabs[PreviousTab]

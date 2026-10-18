@@ -2025,13 +2025,17 @@ function AcrylicBlur()
 			render()
 		end
 
-		model.Destroying:Connect(function()
-			for _, item in cleanups do
-				pcall(function()
-					item:Disconnect()
+		pcall(function()
+			if model and model.Destroying then
+				model.Destroying:Connect(function()
+					for _, item in cleanups do
+						pcall(function()
+							item:Disconnect()
+						end)
+					end
+					table.clear(cleanups)
 				end)
 			end
-			table.clear(cleanups)
 		end)
 
 		renderOnChange()
@@ -3743,8 +3747,12 @@ Components.Dialog = (function()
 			end)
 		end
 
-		NewDialog.TintFrame.Destroying:Connect(function()
-			NewDialog:Close()
+		pcall(function()
+			if NewDialog.TintFrame and NewDialog.TintFrame.Destroying then
+				NewDialog.TintFrame.Destroying:Connect(function()
+					NewDialog:Close()
+				end)
+			end
 		end)
 
 		function NewDialog:Button(Title, Callback)
@@ -4511,7 +4519,7 @@ Components.Window = (function()
 			ZIndex = 51,
 		}, {
 			New("ImageLabel", {
-				Image = "rbxassetid://10709798362",
+				Image = "",
 				Size = UDim2.fromOffset(14, 14),
 				Position = UDim2.new(1, -3, 1, -3),
 				AnchorPoint = Vector2.new(1, 1),
@@ -7044,8 +7052,12 @@ ElementsTable.Dropdown = (function()
 			Library.Options[Idx] = nil
 		end
 
-		DropdownFrame.Destroying:Connect(function()
-			Dropdown:Destroy()
+		pcall(function()
+			if DropdownFrame and DropdownFrame.Destroying then
+				DropdownFrame.Destroying:Connect(function()
+					Dropdown:Destroy()
+				end)
+			end
 		end)
 
 		Dropdown:BuildDropdownList()
@@ -10446,7 +10458,7 @@ Library.CreateWindow = function(self, Config)
 	Library.Sound = (Config.Sound == true)
 
 	if Config.BackgroundImage == nil then
-		Config.BackgroundImage = "rbxassetid://13196113628"
+		Config.BackgroundImage = ""
 	end
 
 	if Config.BackgroundTransparency == nil then

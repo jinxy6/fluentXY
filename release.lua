@@ -6023,8 +6023,12 @@ ElementsTable.Button = (function()
 	Element.__index = Element
 	Element.__type = "Button"
 
-	function Element:New(Config)
-		assert(Config.Title, "Button - Missing Title")
+	function Element:New(Idx, Config)
+		if type(Idx) == "table" and Config == nil then
+			Config = Idx
+			Idx = nil
+		end
+		assert(Config and Config.Title, "Button - Missing Title")
 		Config.Callback = Config.Callback or function() end
 
 		local ButtonFrame = Components.Element(Config.Title, Config.Description, self.Container, true, Config)

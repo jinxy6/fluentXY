@@ -1708,7 +1708,7 @@ local function setupMiniMessageSupport(object, properties)
 	end
 end
 
-function Creator.New(Name, Properties, Children) local _si = setthreadidentity or set_thread_identity or setidentity or setthreadcontext or set_thread_context or (syn and syn.set_thread_identity); if _si then pcall(_si, 8) end
+function Creator.New(Name, Properties, Children)
 	local Object = Instance.new(Name)
 
 	for Name, Value in next, Creator.DefaultProperties[Name] or {} do
@@ -2029,17 +2029,13 @@ function AcrylicBlur()
 			render()
 		end
 
-		pcall(function()
-			if model and model.Destroying then
-				model.Destroying:Connect(function()
-					for _, item in cleanups do
-						pcall(function()
-							item:Disconnect()
-						end)
-					end
-					table.clear(cleanups)
+		model.Destroying:Connect(function()
+			for _, item in cleanups do
+				pcall(function()
+					item:Disconnect()
 				end)
 			end
+			table.clear(cleanups)
 		end)
 
 		renderOnChange()
@@ -2711,7 +2707,7 @@ Components.Section = (function()
 		})
 
 		local nextOrder = 1
-		if Parent and Parent:IsA("Instance") then
+		if Parent and typeof(Parent) == "Instance" then
 			local count = (Parent:GetAttribute("ElementOrderCount") or 0) + 1
 			pcall(function() Parent:SetAttribute("ElementOrderCount", count) end)
 			nextOrder = count
@@ -2951,14 +2947,6 @@ Components.Tab = (function()
 
 		TabModule.Containers[TabIndex] = Tab.ContainerAnim
 		TabModule.Tabs[TabIndex] = Tab
-
-		if TabModule.TabCount == 1 then
-			task.defer(function()
-				if TabModule.SelectedTab == 0 then
-					TabModule:SelectTab(1)
-				end
-			end)
-		end
 
 		Tab.Container = Tab.ContainerFrame
 		Tab.ScrollFrame = Tab.Container
@@ -3492,19 +3480,6 @@ Components.Tab = (function()
 				end)
 
 				task.wait(0.2)
-				if TabModule.CurrentAnimationTab == Tab then
-					if NewContainer and NewContainer.Parent then
-						NewContainer.Visible = true
-						NewContainer.Position = UDim2.fromOffset(0, 0)
-						NewContainer.GroupTransparency = 0
-					end
-					if NewTab and NewTab.ContainerXMotor and NewTab.ContainerTransparencyMotor then
-						pcall(function()
-							NewTab.ContainerXMotor:setGoal(Instant(0))
-							NewTab.ContainerTransparencyMotor:setGoal(Instant(0))
-						end)
-					end
-				end
 				if TabModule.CurrentAnimationTab == Tab and TabModule.Tabs[PreviousTab] then
 					local oCont = TabModule.Tabs[PreviousTab].ContainerAnim
 					local oTab = TabModule.Tabs[PreviousTab]
@@ -3766,12 +3741,8 @@ Components.Dialog = (function()
 			end)
 		end
 
-		pcall(function()
-			if NewDialog.TintFrame and NewDialog.TintFrame.Destroying then
-				NewDialog.TintFrame.Destroying:Connect(function()
-					NewDialog:Close()
-				end)
-			end
+		NewDialog.TintFrame.Destroying:Connect(function()
+			NewDialog:Close()
 		end)
 
 		function NewDialog:Button(Title, Callback)
@@ -4538,7 +4509,7 @@ Components.Window = (function()
 			ZIndex = 51,
 		}, {
 			New("ImageLabel", {
-				Image = "",
+				Image = "rbxassetid://10709798362",
 				Size = UDim2.fromOffset(14, 14),
 				Position = UDim2.new(1, -3, 1, -3),
 				AnchorPoint = Vector2.new(1, 1),
@@ -6041,12 +6012,8 @@ ElementsTable.Button = (function()
 	Element.__index = Element
 	Element.__type = "Button"
 
-	function Element:New(Idx, Config)
-		if type(Idx) == "table" and Config == nil then
-			Config = Idx
-			Idx = nil
-		end
-		assert(Config and Config.Title, "Button - Missing Title")
+	function Element:New(Config)
+		assert(Config.Title, "Button - Missing Title")
 		Config.Callback = Config.Callback or function() end
 
 		local ButtonFrame = Components.Element(Config.Title, Config.Description, self.Container, true, Config)
@@ -7074,12 +7041,8 @@ ElementsTable.Dropdown = (function()
 			Library.Options[Idx] = nil
 		end
 
-		pcall(function()
-			if DropdownFrame and DropdownFrame.Destroying then
-				DropdownFrame.Destroying:Connect(function()
-					Dropdown:Destroy()
-				end)
-			end
+		DropdownFrame.Destroying:Connect(function()
+			Dropdown:Destroy()
 		end)
 
 		Dropdown:BuildDropdownList()
@@ -9821,6 +9784,7 @@ local SaveManager = {} do
 
 
 				local name = readfile(self.Folder .. "/autoload.txt")
+			if not name or name:gsub(" ", "") == "" then return end
 
 
 
@@ -9886,6 +9850,36 @@ local SaveManager = {} do
 
 
 
+	function SaveManager:ResetAutoloadConfig()
+		local files = {
+			self.Folder .. "/autoload.txt",
+			self.Folder .. "/settings/autoload.txt"
+		}
+		local cleared = false
+		for _, f in ipairs(files) do
+			if isfile and isfile(f) then
+				if delfile then
+					pcall(delfile, f)
+				else
+					pcall(writefile, f, "")
+				end
+				cleared = true
+			end
+		end
+		if self.AutoloadButton then
+			self.AutoloadButton:SetDesc("Current autoload config: none")
+		end
+		if self.Library then
+			self.Library:Notify({
+				Title = "Interface",
+				Content = "Config loader",
+				SubContent = cleared and "Reset autoload configuration" or "No autoload configuration was set",
+				Duration = 7
+			})
+		end
+		return cleared
+	end
+	SaveManager.ClearAutoloadConfig = SaveManager.ResetAutoloadConfig
 	function SaveManager:BuildConfigSection(tab)
 
 
@@ -10047,6 +10041,28 @@ local SaveManager = {} do
 
 
 		end})
+		self.AutoloadButton = AutoloadButton
+		section:AddButton({Title = "Reset autoload config", Description = "Removes the autoload config", Callback = function()
+			if self.ResetAutoloadConfig then
+				self:ResetAutoloadConfig()
+			else
+				pcall(function()
+					if delfile then
+						delfile(self.Folder .. "/autoload.txt")
+					else
+						writefile(self.Folder .. "/autoload.txt", "")
+					end
+				end)
+				AutoloadButton:SetDesc("Current autoload config: none")
+				self.Library:Notify({
+					Title = "Interface",
+					Content = "Config loader",
+					SubContent = "Reset autoload configuration",
+					Duration = 7
+				})
+			end
+		end})
+
 
 
 
@@ -10480,7 +10496,7 @@ Library.CreateWindow = function(self, Config)
 	Library.Sound = (Config.Sound == true)
 
 	if Config.BackgroundImage == nil then
-		Config.BackgroundImage = ""
+		Config.BackgroundImage = "rbxassetid://13196113628"
 	end
 
 	if Config.BackgroundTransparency == nil then
@@ -11409,5 +11425,4 @@ end
 
 if RunService:IsStudio() then task.wait(0.01) end
 return Library, SaveManager, InterfaceManager, Mobile
-
 

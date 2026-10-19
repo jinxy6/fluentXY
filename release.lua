@@ -7041,8 +7041,13 @@ ElementsTable.Dropdown = (function()
 			Library.Options[Idx] = nil
 		end
 
-		DropdownFrame.Destroying:Connect(function()
-			Dropdown:Destroy()
+		pcall(function()
+			local target = DropdownFrame and (DropdownFrame.Frame or DropdownFrame)
+			if target and typeof(target) == "Instance" and target.Destroying then
+				target.Destroying:Connect(function()
+					Dropdown:Destroy()
+				end)
+			end
 		end)
 
 		Dropdown:BuildDropdownList()

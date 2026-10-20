@@ -2806,6 +2806,9 @@ Components.Tab = (function()
 
 		TabModule.TabCount = TabModule.TabCount + 1
 		local TabIndex = TabModule.TabCount
+		if Window then
+			Window.TabHolderItemCount = (Window.TabHolderItemCount or 0) + 1
+		end
 
 		local Tab = {
 			Selected = false,
@@ -2836,6 +2839,7 @@ Components.Tab = (function()
 			Size = UDim2.new(1, 0, 0, 34),
 			BackgroundTransparency = 0.92,
 			Parent = Parent,
+			LayoutOrder = Window and Window.TabHolderItemCount or TabIndex,
 			ZIndex = 10,
 			ThemeTag = {
 				BackgroundColor3 = "Tab",
@@ -5980,7 +5984,89 @@ Components.Window = (function()
 
 		local TabModule = Components.Tab:Init(Window)
 		Window.TabModule = TabModule
+
+		function Window:AddTabSection(Title, Options)
+			local SectionTitle = tostring(Title or "")
+			local opts = (type(Options) == "table") and Options or {}
+			local isFirst = (Window.TabHolderItemCount == nil or Window.TabHolderItemCount == 0)
+
+			Window.TabHolderItemCount = (Window.TabHolderItemCount or 0) + 1
+
+			local height = opts.Height or (isFirst and 20 or 25)
+			local leftOffset = opts.LeftOffset or 8
+			local displayText = opts.ExactCase and SectionTitle or string.upper(SectionTitle)
+
+			local SectionFrame = New("Frame", {
+				Name = "TabSection_" .. SectionTitle,
+				Size = UDim2.new(1, 0, 0, height),
+				BackgroundTransparency = 1,
+				Parent = Window.TabHolder,
+				LayoutOrder = Window.TabHolderItemCount,
+				ZIndex = 10,
+			}, {
+				New("TextLabel", {
+					Name = "Title",
+					AnchorPoint = Vector2.new(0, 1),
+					Position = UDim2.new(0, leftOffset, 1, -3),
+					Size = UDim2.new(1, -(leftOffset * 2), 0, 14),
+					BackgroundTransparency = 1,
+					Text = displayText,
+					RichText = true,
+					FontFace = Font.new(
+						"rbxasset://fonts/families/GothamSSm.json",
+						Enum.FontWeight.SemiBold,
+						Enum.FontStyle.Normal
+					),
+					TextSize = 11,
+					TextTransparency = 0.35,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Bottom,
+					ThemeTag = {
+						TextColor3 = "SubText",
+					},
+					ZIndex = 11,
+				})
+			})
+
+			local SectionObj = {
+				Frame = SectionFrame,
+				Title = SectionFrame:FindFirstChild("Title"),
+			}
+
+			function SectionObj:SetTitle(newTitle)
+				if SectionObj.Title then
+					SectionObj.Title.Text = opts.ExactCase and tostring(newTitle or "") or string.upper(tostring(newTitle or ""))
+				end
+			end
+
+			function SectionObj:SetVisible(bool)
+				SectionFrame.Visible = (bool == true)
+			end
+
+			function SectionObj:Destroy()
+				SectionFrame:Destroy()
+			end
+
+			return setmetatable(SectionObj, {
+				__index = SectionFrame,
+			})
+		end
+
+		Window.AddTabHeader = Window.AddTabSection
+		Window.AddTabGroup = Window.AddTabSection
+		Window.AddTabTitle = Window.AddTabSection
+
 		function Window:AddTab(TabConfig)
+			if type(TabConfig) == "table" then
+				local sectionName = TabConfig.Section or TabConfig.Group or TabConfig.Header
+				if sectionName and type(sectionName) == "string" and sectionName ~= "" then
+					Window._ExistingTabSections = Window._ExistingTabSections or {}
+					if not Window._ExistingTabSections[sectionName] then
+						Window._ExistingTabSections[sectionName] = true
+						Window:AddTabSection(sectionName)
+					end
+				end
+			end
 			local tab = TabModule:New(TabConfig.Title, TabConfig.Icon, Window.TabHolder)
 			return tab
 		end

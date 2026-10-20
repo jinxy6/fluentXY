@@ -2836,6 +2836,7 @@ Components.Tab = (function()
 		Tab.IconImage = tabIconLabel
 
 		Tab.Frame = New("TextButton", {
+			Name = string.format("%03d_Tab_%s", Window and Window.TabHolderItemCount or TabIndex, Title),
 			Size = UDim2.new(1, 0, 0, 34),
 			BackgroundTransparency = 0.92,
 			Parent = Parent,
@@ -4877,6 +4878,7 @@ Components.Window = (function()
 		}, {
 			New("UIListLayout", {
 				Padding = UDim.new(0, 4),
+				SortOrder = Enum.SortOrder.LayoutOrder,
 			}),
 			New("UIPadding", {
 				PaddingTop = UDim.new(0, 2),
@@ -5423,37 +5425,8 @@ Components.Window = (function()
 			if EntrancePlayed then return end
 			EntrancePlayed = true
 
-			local elapsed = os.clock() - startTime
-			if elapsed < 1.2 then
-				task.wait(1.2 - elapsed)
-			end
-
 			local finalX = Window.Position.X.Offset
 			local finalY = Window.Position.Y.Offset
-
-			if Loader and Loader.Parent then
-				pcall(function()
-					spinTween:Cancel()
-					local shadow = Loader:FindFirstChild("LoaderShadow")
-					if shadow then
-						TweenService:Create(shadow, TweenInfo.new(0.18), { ImageTransparency = 1 }):Play()
-					end
-					TweenService:Create(LoaderTitle, TweenInfo.new(0.15), { TextTransparency = 1 }):Play()
-					TweenService:Create(LoaderStatus, TweenInfo.new(0.15), { TextTransparency = 1 }):Play()
-					TweenService:Create(LoaderIcon, TweenInfo.new(0.15), { ImageTransparency = 1 }):Play()
-					TweenService:Create(ProgressTrack, TweenInfo.new(0.15), { BackgroundTransparency = 1 }):Play()
-					TweenService:Create(ProgressFill, TweenInfo.new(0.15), { BackgroundTransparency = 1 }):Play()
-				end)
-
-				local morphTween = TweenService:Create(Loader, TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-					Size = Window.Size,
-					Position = Window.Position,
-					AnchorPoint = Vector2.new(0, 0),
-					BackgroundTransparency = 0.88,
-				})
-				morphTween:Play()
-				task.wait(0.2)
-			end
 
 			Window.Root.Visible = true
 			if Library.UseAcrylic and Library.Acrylic then
@@ -5474,23 +5447,21 @@ Components.Window = (function()
 			EntranceScaleMotor:setGoal(Spring(1, { frequency = 8, dampingRatio = 0.8 }))
 
 			if Loader and Loader.Parent then
-				task.delay(0.25, function()
-					if Loader and Loader.Parent then
-						local fade = TweenService:Create(Loader, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
-						fade:Play()
-						fade.Completed:Connect(function()
-							Loader:Destroy()
-						end)
-					end
+				task.spawn(function()
+					pcall(function()
+						spinTween:Cancel()
+						local shadow = Loader:FindFirstChild("LoaderShadow")
+						if shadow then
+							TweenService:Create(shadow, TweenInfo.new(0.15), { ImageTransparency = 1 }):Play()
+						end
+						TweenService:Create(Loader, TweenInfo.new(0.18), { BackgroundTransparency = 1 }):Play()
+					end)
+					task.wait(0.2)
+					pcall(function() Loader:Destroy() end)
 				end)
 			end
 		end
-
-		task.delay(1.3, function()
-			if not EntrancePlayed then
-				Window:PlayEntrance()
-			end
-		end)
+		Window:PlayEntrance()
 
 		_G.CDDrag = 0
 		Window.SelectorPosMotor = Flipper.SingleMotor.new(17)
@@ -5997,7 +5968,7 @@ Components.Window = (function()
 			local displayText = opts.ExactCase and SectionTitle or string.upper(SectionTitle)
 
 			local SectionFrame = New("Frame", {
-				Name = "TabSection_" .. SectionTitle,
+				Name = string.format("%03d_TabSection_%s", Window.TabHolderItemCount, SectionTitle),
 				Size = UDim2.new(1, 0, 0, height),
 				BackgroundTransparency = 1,
 				Parent = Window.TabHolder,

@@ -9544,6 +9544,8 @@ local SaveManager = {} do
 
 	end
 
+	SaveManager.Overwrite = SaveManager.Save
+
 
 
 
@@ -9970,9 +9972,24 @@ local SaveManager = {} do
 			end)
 		end})
 
-		section:AddButton({Title = "Save config", Callback = function()
+		section:AddButton({Title = "Overwrite config", Callback = function()
 			task.spawn(function()
 				local name = SaveManager.Options.SaveManager_ConfigList.Value
+				if (not name or name:gsub(" ", "") == "") and SaveManager.Options.SaveManager_ConfigName then
+					local typed = SaveManager.Options.SaveManager_ConfigName.Value
+					if typed and typed:gsub(" ", "") ~= "" then
+						name = typed
+					end
+				end
+
+				if not name or name:gsub(" ", "") == "" then
+					return self.Library:Notify({
+						Title = "Interface",
+						Content = "Config loader",
+						SubContent = "No config selected or entered to overwrite",
+						Duration = 7
+					})
+				end
 
 				local success, err = self:Save(name)
 				if not success then

@@ -2569,7 +2569,7 @@ Components.Element = (function()
 		end
 
 		function Element:Destroy()
-			Element.Frame:Destroy()
+			pcall(function() Element.Frame:Destroy() end)
 		end
 
 		Element.Header.Visible = not (Title == nil or Title == "")
@@ -6881,7 +6881,7 @@ ElementsTable.Dropdown = (function()
 
 			for _, Element in next, DropdownScrollFrame:GetChildren() do
 				if not Element:IsA("UIListLayout") then
-					Element:Destroy()
+					pcall(function() Element:Destroy() end)
 				end
 			end
 
@@ -7094,7 +7094,7 @@ ElementsTable.Dropdown = (function()
 			if DropdownHolderCanvas then
 				pcall(function() DropdownHolderCanvas:Destroy() end)
 			end
-			DropdownFrame:Destroy()
+			pcall(function() DropdownFrame:Destroy() end)
 			Library.Options[Idx] = nil
 		end
 
@@ -7102,7 +7102,7 @@ ElementsTable.Dropdown = (function()
 			local target = DropdownFrame and (DropdownFrame.Frame or DropdownFrame)
 			if target and typeof(target) == "Instance" and target.Destroying then
 				target.Destroying:Connect(function()
-					Dropdown:Destroy()
+					pcall(function() Dropdown:Destroy() end)
 				end)
 			end
 		end)
@@ -11246,9 +11246,7 @@ function Library:SetTheme(Value)
 		Creator.Theme = Value
 		Creator.UpdateTheme()
 
-		if Value == "Glass" then
-			Library:SetWindowTransparency(0.9)
-		end
+		Library:SetWindowTransparency(Library.WindowTransparencyValue or (Value == "Glass" and 1 or 1))
 	end
 end
 
@@ -11428,58 +11426,58 @@ function Library:ToggleTransparency(Value)
 end
 
 function Library:SetWindowTransparency(Value)
-	if Library.Window and Library.UseAcrylic and Library.Acrylic then
-		Value = math.clamp(Value, 0, 3)
+	if not Library.Window then return end
+	Value = math.clamp(tonumber(Value) or 1, 0, 3)
+	Library.WindowTransparencyValue = Value
 
+	local paint = Library.Window.AcrylicPaint
+	if paint and paint.Frame then
+		local bgAlpha, gradAlpha
 		if Library.Theme == "Glass" then
-			local glassTransparency = 0.8 + (Value * 0.05)
-			if Value > 1 then
-				glassTransparency = 0.85 + ((Value - 1) * 0.04)
-			end
-			if Value > 2 then
-				glassTransparency = 0.93 + ((Value - 2) * 0.04)
-			end
-
-			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
-				if Library.Window.Root and (not Library.Window.Root.Visible or Library.Window.Minimized) then
-					Library.Window.AcrylicPaint.Model.Transparency = 1
-					Library.Window.AcrylicPaint.Model.CFrame = CFrame.new(0, -999999, 0)
-				else
-					Library.Window.AcrylicPaint.Model.Transparency = math.min(glassTransparency, 0.99)
-				end
-			end
-
-			local backgroundTransparency = 0.7 + (Value * 0.08)
-			if Value > 1 then
-				backgroundTransparency = 0.78 + ((Value - 1) * 0.07)
-			end
-			if Value > 2 then
-				backgroundTransparency = 0.85 + ((Value - 2) * 0.1)
-			end
-
-			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame and Library.Window.AcrylicPaint.Frame:FindFirstChild("Background") then
-				Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = math.min(backgroundTransparency, 0.99)
-			end
-
-			Library.NotificationTransparency = Value
-
-			for _, notification in pairs(Library.ActiveNotifications or {}) do
-				if notification and notification.ApplyTransparency then
-					notification:ApplyTransparency()
-				end
-			end
+			bgAlpha = 0.20 + (Value / 3) * 0.75
+			gradAlpha = 0.25 + (Value / 3) * 0.67
 		else
-			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
-				if Library.Window.Root and (not Library.Window.Root.Visible or Library.Window.Minimized) then
-					Library.Window.AcrylicPaint.Model.Transparency = 1
-					Library.Window.AcrylicPaint.Model.CFrame = CFrame.new(0, -999999, 0)
-				else
-					Library.Window.AcrylicPaint.Model.Transparency = 0.98
+			bgAlpha = (Value / 3) * 0.90
+			gradAlpha = 0.35 + (Value / 3) * 0.60
+		end
+
+		local bg = paint.Frame:FindFirstChild("Background")
+		if bg and bg:IsA("GuiObject") then
+			bg.BackgroundTransparency = math.clamp(bgAlpha, 0, 0.99)
+		end
+
+		for _, child in pairs(paint.Frame:GetChildren()) do
+			if child:IsA("Frame") and child.Name ~= "Background" then
+				if child:FindFirstChildOfClass("UIGradient") then
+					child.BackgroundTransparency = math.clamp(gradAlpha, 0, 0.99)
+				elseif not child:FindFirstChildOfClass("UIStroke") then
+					child.BackgroundTransparency = math.clamp(bgAlpha, 0, 0.99)
 				end
 			end
-			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame and Library.Window.AcrylicPaint.Frame:FindFirstChild("Background") then
-				Library.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = Value * 0.3
+		end
+
+		if paint.Model then
+			if Library.Window.Root and (not Library.Window.Root.Visible or Library.Window.Minimized) then
+				paint.Model.Transparency = 1
+				paint.Model.CFrame = CFrame.new(0, -999999, 0)
+			else
+				local modelAlpha = (Library.Theme == "Glass")
+					and math.clamp(0.75 + (Value / 3) * 0.22, 0.75, 0.99)
+					or 0.98
+				paint.Model.Transparency = modelAlpha
 			end
+		end
+	end
+
+	if Library.Window.Root and Library.Window.Root:IsA("Frame") and (not paint or not paint.Frame) then
+		Library.Window.Root.BackgroundTransparency = 0.2 + (Value / 3) * 0.75
+	end
+
+	Library.NotificationTransparency = Value
+
+	for _, notification in pairs(Library.ActiveNotifications or {}) do
+		if notification and notification.ApplyTransparency then
+			pcall(function() notification:ApplyTransparency() end)
 		end
 	end
 end

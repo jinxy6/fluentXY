@@ -27,11 +27,6 @@ local SoundService = cloneref(game:GetService("SoundService"))
 
 local Mobile = (table.find({Enum.Platform.IOS, Enum.Platform.Android}, UserInputService:GetPlatform()) ~= nil) or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled)
 
-local fischbypass
-
-if game.GameId == 5750914919 then
-	fischbypass = true
-end
 
 local RenderStepped = RunService.Heartbeat
 
@@ -572,7 +567,7 @@ local Themes = {
 }
 
 local Library = {
-	Version = "1.2.2",
+	Version = "1.2.3",
 
 	OpenFrames = {},
 	Options = {},
@@ -582,6 +577,12 @@ local Library = {
 	Window = nil,
 	WindowFrame = nil,
 	Unloaded = false,
+	Debug = false,
+	SafeMode = false,
+	NoIcons = false,
+	ActiveDropdown = nil,
+	StaticIcons = nil,
+	Molto = nil,
 
 	Creator = nil,
 
@@ -597,37 +598,40 @@ local Library = {
 	SetSound = function() end,
 }
 
-local Icons
+local Icons = nil
 local Molto = nil
 
-task.spawn(function()
-	pcall(function()
-		local src
-		if isfile and isfile("molto_source.lua") then
-			src = readfile("molto_source.lua")
-		end
-		if not (src and #src > 50) then
-			local ok, res = pcall(function()
-				return game:HttpGet("https://molto.pages.dev/source.lua")
-			end)
-			if ok and res and #res > 50 then
-				src = res
-				if writefile then
-					pcall(writefile, "molto_source.lua", src)
+local function initMolto()
+	if Library.SafeMode or Library.NoIcons or Molto then return end
+	task.spawn(function()
+		pcall(function()
+			local src
+			if isfile and isfile("molto_source.lua") then
+				src = readfile("molto_source.lua")
+			end
+			if not (src and #src > 50) then
+				local ok, res = pcall(function()
+					return game:HttpGet("https://molto.pages.dev/source.lua")
+				end)
+				if ok and res and #res > 50 then
+					src = res
+					if writefile then
+						pcall(writefile, "molto_source.lua", src)
+					end
 				end
 			end
-		end
-		if src and #src > 50 then
-			local m = loadstring(src)()
-			if m and m.SetProvider then
-				m.SetProvider("lucide")
+			if src and #src > 50 then
+				local m = loadstring(src)()
+				if m and m.SetProvider then
+					m.SetProvider("lucide")
+				end
+				Molto = m
+				Library.Molto = m
 			end
-			Molto = m
-			Library.Molto = m
-			Library.Icons = m
-		end
+		end)
 	end)
-end)
+end
+Library.InitMolto = initMolto
 
 function Library:SetIconProvider(provider)
 	if Library.Molto and Library.Molto.SetProvider then
@@ -651,9 +655,10 @@ function Library:GetIcon(Name, Provider)
 		local ok, res = pcall(Library.Molto.GetAsset, name, prov)
 		if ok and res then return res end
 	end
-	if Icons then
-		if Icons["lucide-" .. tostring(name)] then return Icons["lucide-" .. tostring(name)] end
-		if Icons[tostring(name)] then return Icons[tostring(name)] end
+	local iconMap = Icons or Library.StaticIcons
+	if iconMap then
+		if iconMap["lucide-" .. tostring(name)] then return iconMap["lucide-" .. tostring(name)] end
+		if iconMap[tostring(name)] then return iconMap[tostring(name)] end
 	end
 	return nil
 end
@@ -692,7 +697,8 @@ function Library:ApplyIcon(ImageLabel, IconName, Provider)
 		ImageLabel.ImageRectSize = asset.ImageRectSize
 		ImageLabel.ImageRectOffset = asset.ImageRectOffset
 	else
-		local fallback = Icons and (Icons["lucide-" .. tostring(name)] or Icons[tostring(name)]) or tostring(name)
+		local iconMap = Icons or Library.StaticIcons
+		local fallback = iconMap and (iconMap["lucide-" .. tostring(name)] or iconMap[tostring(name)]) or tostring(name)
 		ImageLabel.Image = fallback
 		ImageLabel.ImageRectSize = Vector2.new(0, 0)
 		ImageLabel.ImageRectOffset = Vector2.new(0, 0)
@@ -1228,14 +1234,6 @@ end
 Creator.Themes = Themes
 Creator.Theme = Creator.Theme or "Dark"
 
-function Creator.GetThemeProperty(Property)
-	local Theme = Creator.Themes[Creator.Theme]
-	if Theme then
-		return Theme[Property]
-	end
-	return Creator.Themes.Dark[Property]
-end
-
 function Creator.UpdateTheme()
 	if not Creator.Themes[Creator.Theme] then
 		Creator.Theme = "Dark"
@@ -1298,10 +1296,15 @@ function Creator.OverrideTag(Object, Properties)
 end
 
 function Creator.GetThemeProperty(Property)
-	if Themes[Library.Theme][Property] then
-		return Themes[Library.Theme][Property]
+	local curTheme = Library.Theme or Creator.Theme or "Dark"
+	local themeData = Themes[curTheme] or (Creator.Themes and Creator.Themes[curTheme])
+	if themeData and themeData[Property] ~= nil then
+		return themeData[Property]
 	end
-	return Themes["Dark"][Property]
+	if Themes.Dark and Themes.Dark[Property] ~= nil then
+		return Themes.Dark[Property]
+	end
+	return nil
 end
 
 local MiniMessageColors = {
@@ -1616,7 +1619,12 @@ local TextElements = {}
 local TextElementConnections = {}
 
 local function setupMiniMessageSupport(object, properties)
-	if not (object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox")) then
+	if not (object:IsA("TextLabel") or object:IsA("TextButton")) then
+		return
+	end
+
+	local originalText = properties and properties.Text
+	if not (originalText and type(originalText) == "string" and originalText:find("<")) then
 		return
 	end
 	
@@ -1812,38 +1820,28 @@ local GUI = New("ScreenGui", {
 Library.GUI = GUI
 ProtectGui(GUI)
 
--- [[ TRUE GUI GHOSTING (DescendantAdded Spoof) ]] --
-pcall(function()
-    local bindable = Instance.new("BindableEvent")
-    local connection = bindable.Event:Connect(function() end)
-    local orig_connect = connection.Connect
-    connection:Disconnect()
-    bindable:Destroy()
-    
-    if hookfunction then
-        hookfunction(orig_connect, function(signal, callback)
-            if tostring(signal) == "DescendantAdded" or tostring(signal) == "ChildAdded" then
-                local function SpoofedCallback(instance, ...)
-                    if typeof(instance) == "Instance" and Library.GUI and (instance == Library.GUI or instance:IsDescendantOf(Library.GUI)) then
-                        return -- Ghosted! The game script never sees the UI element.
-                    end
-                    return callback(instance, ...)
-                end
-                -- Safe stack hiding (only if native setstackhidden is supported; never demote thread identity to 1)
-                local function HiddenSpoof(...)
-                    if setstackhidden then
-                        pcall(setstackhidden, 1, true)
-                    end
-                    return SpoofedCallback(...)
-                end
-                
-                return orig_connect(signal, HiddenSpoof)
-            end
-            return orig_connect(signal, callback)
-        end)
-    end
+Creator.AddSignal(UserInputService.InputBegan, function(Input)
+	local active = Library.ActiveDropdown
+	if not active or not active.Opened then return end
+	if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+		local holder = active.HolderFrame
+		local inner = active.InnerFrame
+		if not holder or not inner then return end
+		local mousePos = Input.UserInputType == Enum.UserInputType.MouseButton1 and Vector2.new(Mouse.X, Mouse.Y) or Input.Position
+		local AbsPos, AbsSize = holder.AbsolutePosition, holder.AbsoluteSize
+		local innerAbsPos, innerAbsSize = inner.AbsolutePosition, inner.AbsoluteSize
+		local clickedInsideDropdown = mousePos.X >= AbsPos.X and mousePos.X <= AbsPos.X + AbsSize.X and mousePos.Y >= AbsPos.Y and mousePos.Y <= AbsPos.Y + AbsSize.Y
+		local clickedInsideInner = mousePos.X >= innerAbsPos.X and mousePos.X <= innerAbsPos.X + innerAbsSize.X and mousePos.Y >= innerAbsPos.Y and mousePos.Y <= innerAbsPos.Y + innerAbsSize.Y
+		if not clickedInsideDropdown and not clickedInsideInner then
+			active:Close()
+		end
+	end
 end)
--- [[ END TRUE GUI GHOSTING ]] --
+
+local safeLogger = nil
+function Library:SetSafeLogger(fn)
+	safeLogger = fn
+end
 
 function Library:SafeCallback(Function, ...)
 	if not Function then
@@ -1852,31 +1850,28 @@ function Library:SafeCallback(Function, ...)
 
 	local Success, Event = pcall(Function, ...)
 	if not Success then
-		local _, i = Event:find(":%d+: ")
-
-		if not i then
-			return Library:Notify({
-				Title = "Interface",
-				Content = "Callback error",
-				SubContent = Event,
-				Duration = 5,
-			})
+		if safeLogger then
+			pcall(safeLogger, Event)
 		end
 
 		return Library:Notify({
 			Title = "Interface",
 			Content = "Callback error",
-			SubContent = Event:sub(i + 1),
+			SubContent = "Check internal log",
 			Duration = 5,
 		})
 	end
-end--?
+	return Event
+end
+
 function Library:Round(Number, Factor)
+	Number = tonumber(Number) or 0
 	if Factor == 0 then
 		return math.floor(Number)
 	end
-	Number = tostring(Number)
-	return Number:find("%.") and tonumber(Number:sub(1, Number:find("%.") + Factor)) or Number
+	local str = tostring(Number)
+	local dot = str:find("%.")
+	return tonumber(dot and str:sub(1, dot + Factor) or str) or Number
 end
 
 local function map(value, inMin, inMax, outMin, outMax)
@@ -1903,17 +1898,20 @@ if ws.CurrentCamera then
 		end
 	end
 end
+local sessionSeed = tostring(math.random(100000, 999999))
+
 pcall(function()
 	local lighting = game:GetService("Lighting")
 	for _, child in ipairs(lighting:GetChildren()) do
-		if child.Name == "FluentDepthOfField" then
+		if child:IsA("DepthOfFieldEffect") and child:GetAttribute("FluentDOF") == true then
 			child:Destroy()
 		end
 	end
 end)
 
 local BlurFolder = Instance.new("Folder")
-BlurFolder.Name = "FluentBlur"
+BlurFolder.Name = "F_" .. sessionSeed
+BlurFolder:SetAttribute("FluentUI", true)
 Library.BlurFolder = BlurFolder
 do
 	local function attachToCurrentCamera()
@@ -2024,12 +2022,24 @@ function AcrylicBlur()
 			render()
 		end
 
-		local function renderOnChange()
-			table.insert(cleanups, RunService.RenderStepped:Connect(render))
-			render()
+		local renderConn = nil
+		local function stopRender()
+			if renderConn then
+				renderConn:Disconnect()
+				renderConn = nil
+			end
+		end
+
+		local function startRender()
+			if not renderConn and not Library.Unloaded then
+				renderConn = RunService.Heartbeat:Connect(render)
+				table.insert(cleanups, renderConn)
+				render()
+			end
 		end
 
 		model.Destroying:Connect(function()
+			stopRender()
 			for _, item in cleanups do
 				pcall(function()
 					item:Disconnect()
@@ -2038,14 +2048,14 @@ function AcrylicBlur()
 			table.clear(cleanups)
 		end)
 
-		renderOnChange()
+		startRender()
 
-		return onChange, model
+		return onChange, model, startRender, stopRender
 	end
 
 	return function(distance)
 		local Blur = {}
-		local onChange, model = createAcrylicBlur(distance)
+		local onChange, model, startRender, stopRender = createAcrylicBlur(distance)
 
 		local comp = Creator.New("Frame", {
 			BackgroundTransparency = 1,
@@ -2078,6 +2088,9 @@ function AcrylicBlur()
 			model.Transparency = actual and ((Library.Theme == "Glass") and 0.85 or 0.98) or 1
 			if not actual then
 				model.CFrame = CFrame.new(0, -999999, 0)
+				stopRender()
+			else
+				startRender()
 			end
 		end
 
@@ -2242,67 +2255,42 @@ function Acrylic.init()
 	pcall(function()
 		local lighting = game:GetService("Lighting")
 		for _, child in ipairs(lighting:GetChildren()) do
-			if child:IsA("DepthOfFieldEffect") and (child.Name == "FluentDepthOfField" or (child.InFocusRadius <= 0.2 and child.NearIntensity >= 0.9)) then
+			if child:IsA("DepthOfFieldEffect") and child:GetAttribute("FluentDOF") == true then
 				child:Destroy()
 			end
 		end
 	end)
 
 	local baseEffect = Instance.new("DepthOfFieldEffect")
-	baseEffect.Name = "FluentDepthOfField"
+	baseEffect.Name = "DOF_" .. sessionSeed
+	baseEffect:SetAttribute("FluentDOF", true)
 	baseEffect.FarIntensity = 0
 	baseEffect.InFocusRadius = 0.1
 	baseEffect.NearIntensity = 1
 	Acrylic.BaseEffect = baseEffect
 
-	local depthOfFieldDefaults = {}
-
 	function Acrylic.Enable()
-		for _, effect in pairs(depthOfFieldDefaults) do
-			pcall(function() effect.Enabled = false end)
+		if not Acrylic.BaseEffect then
+			Acrylic.init()
 		end
-		baseEffect.Parent = game:GetService("Lighting")
+		if Acrylic.BaseEffect then
+			Acrylic.BaseEffect.Parent = game:GetService("Lighting")
+		end
 	end
 
 	function Acrylic.Disable()
-		for effect, data in pairs(depthOfFieldDefaults) do
-			pcall(function() effect.Enabled = data.enabled end)
+		if Acrylic.BaseEffect then
+			Acrylic.BaseEffect.Parent = nil
 		end
-		baseEffect.Parent = nil
 	end
 
 	function Acrylic.Destroy()
 		Acrylic.Disable()
-		pcall(function() baseEffect:Destroy() end)
-		Acrylic.BaseEffect = nil
-		table.clear(depthOfFieldDefaults)
-		pcall(function()
-			local lighting = game:GetService("Lighting")
-			for _, child in ipairs(lighting:GetChildren()) do
-				if child:IsA("DepthOfFieldEffect") and (child.Name == "FluentDepthOfField" or (child.InFocusRadius <= 0.2 and child.NearIntensity >= 0.9)) then
-					child:Destroy()
-				end
-			end
-		end)
-	end
-
-	local function registerDefaults()
-		local function register(object)
-			if object:IsA("DepthOfFieldEffect") and object ~= baseEffect then
-				if object.InFocusRadius <= 0.2 and object.NearIntensity >= 0.9 then
-					pcall(function() object:Destroy() end)
-				else
-					depthOfFieldDefaults[object] = { enabled = object.Enabled }
-				end
-			end
-		end
-
-		for _, child in pairs(game:GetService("Lighting"):GetChildren()) do
-			register(child)
+		if Acrylic.BaseEffect then
+			pcall(function() Acrylic.BaseEffect:Destroy() end)
+			Acrylic.BaseEffect = nil
 		end
 	end
-
-	registerDefaults()
 end
 
 local Components = {
@@ -2322,6 +2310,7 @@ Components.Element = (function()
 	return function(Title, Desc, Parent, Hover, Options)
 		local Element = {}
 		local Options = Options or {}
+		Element.Window = (Options and Options.Window) or Library.Window
 
 		Element.TitleLabel = New("TextLabel", {
 			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
@@ -2502,13 +2491,9 @@ Components.Element = (function()
 				Element.DescLabel.LayoutOrder = 2
 				Element.DescLabel.Size = UDim2.new(1, 0, 0, 14)
 			end
-			if Library.Window and Library.Window.AllElements and Library.Window.AllElements[Element.Frame] then
-				Library.Window.AllElements[Element.Frame].title = Set
-			elseif Library.Windows and #Library.Windows > 0 then
-				local currentWindow = Library.Windows[#Library.Windows]
-				if currentWindow and currentWindow.AllElements and currentWindow.AllElements[Element.Frame] then
-					currentWindow.AllElements[Element.Frame].title = Set
-				end
+			local targetWin = Element.Window or Library.Window
+			if targetWin and targetWin.AllElements and targetWin.AllElements[Element.Frame] then
+				targetWin.AllElements[Element.Frame].title = Set
 			end
 		end
 
@@ -2816,7 +2801,7 @@ Components.Tab = (function()
 			Type = "Tab",
 		}
 
-		local hasIcon = (Icon ~= nil and Icon ~= "" and not fischbypass)
+		local hasIcon = (Icon ~= nil and Icon ~= "" and not Library.NoIcons)
 
 		local tabIconLabel = hasIcon and (function()
 			local img = New("ImageLabel", {
@@ -3010,7 +2995,7 @@ Components.Tab = (function()
 				self.SubTabContainerHolder = SubTabContainerHolder
 			end
 
-			local hasSubIcon = (Icon ~= nil and Icon ~= "" and not fischbypass)
+			local hasSubIcon = (Icon ~= nil and Icon ~= "" and not Library.NoIcons)
 			local subTabIconLabel = hasSubIcon and (function()
 				local img = New("ImageLabel", {
 					Size = UDim2.fromOffset(16, 16),
@@ -3209,7 +3194,7 @@ Components.Tab = (function()
 
 				local Section = { Type = "Section" }
 
-				if not fischbypass and Icon then 
+				if not Library.NoIcons and Icon then 
 					if Library:GetIcon(Icon) then
 						Icon = Library:GetIcon(Icon)
 					end
@@ -3367,7 +3352,7 @@ Components.Tab = (function()
 
 			local Section = { Type = "Section" }
 
-			if not fischbypass and Icon then 
+			if not Library.NoIcons and Icon then 
 				if Library:GetIcon(Icon) then
 					Icon = Library:GetIcon(Icon)
 				end
@@ -3811,13 +3796,22 @@ Components.Notification = (function()
 		Config.Content = Config.Content or "Content"
 		Config.SubContent = Config.SubContent or ""
 		Config.Duration = Config.Duration or nil
+
+		while #Library.ActiveNotifications >= 4 do
+			local oldest = table.remove(Library.ActiveNotifications, 1)
+			if oldest and oldest.Close then
+				pcall(function() oldest:Close() end)
+			end
+		end
+
 		local NewNotification = {
 			Closed = false,
+			DurationTask = nil,
 		}
 
 		NewNotification.AcrylicPaint = Acrylic.AcrylicPaint()
 
-		local hasIcon = (Config.Icon ~= nil and Config.Icon ~= "" and not fischbypass)
+		local hasIcon = (Config.Icon ~= nil and Config.Icon ~= "" and not Library.NoIcons)
 		local notifIcon = hasIcon and (function()
 			local img = New("ImageLabel", {
 				Size = UDim2.fromOffset(16, 16),
@@ -4068,6 +4062,11 @@ Components.Notification = (function()
 			if not NewNotification.Closed then
 				NewNotification.Closed = true
 
+				if NewNotification.DurationTask then
+					pcall(task.cancel, NewNotification.DurationTask)
+					NewNotification.DurationTask = nil
+				end
+
 				for _, sig in ipairs(NewNotification.Signals or {}) do
 					pcall(function() sig:Disconnect() end)
 				end
@@ -4101,7 +4100,8 @@ Components.Notification = (function()
 
 		NewNotification:Open()
 		if Config.Duration then
-			task.delay(Config.Duration, function()
+			NewNotification.DurationTask = task.delay(Config.Duration, function()
+				NewNotification.DurationTask = nil
 				NewNotification:Close()
 			end)
 		end
@@ -4396,6 +4396,11 @@ Components.TitleBar = (function()
 					{
 						Title = "Yes",
 						Callback = function()
+							if Library.Window and Library.Window.CloseCallbacks then
+								for _, cb in ipairs(Library.Window.CloseCallbacks) do
+									pcall(cb)
+								end
+							end
 							Library:Destroy()
 						end,
 					},
@@ -5124,8 +5129,13 @@ Components.Window = (function()
 		})
 
 		CenterWindow()
+		local resizeDebounce
 		Creator.AddSignal(Camera:GetPropertyChangedSignal("ViewportSize"), function()
-			CenterWindow()
+			if resizeDebounce then task.cancel(resizeDebounce) end
+			resizeDebounce = task.delay(0.1, function()
+				resizeDebounce = nil
+				CenterWindow()
+			end)
 		end)
 
 
@@ -5258,6 +5268,25 @@ Components.Window = (function()
 				Window.Scale.Scale = scaleVal
 			end
 		end)
+
+		Window.SizeMotor = SizeMotor
+		Window.PosMotor = PosMotor
+		Window.EntranceScaleMotor = EntranceScaleMotor
+		Window.CloseCallbacks = {}
+
+		function Window:BindClose(callback)
+			if type(callback) == "function" then
+				table.insert(Window.CloseCallbacks, callback)
+			end
+		end
+
+		local function onWindowRootMoveOrResize()
+			if Library.ActiveDropdown and Library.ActiveDropdown.RecalculateListPosition then
+				Library.ActiveDropdown.RecalculateListPosition()
+			end
+		end
+		Creator.AddSignal(Window.Root:GetPropertyChangedSignal("AbsolutePosition"), onWindowRootMoveOrResize)
+		Creator.AddSignal(Window.Root:GetPropertyChangedSignal("AbsoluteSize"), onWindowRootMoveOrResize)
 
 		local Loader = New("Frame", {
 			Name = "FluentLoader",
@@ -5820,8 +5849,8 @@ Components.Window = (function()
 		end
 
 		function Window:SetBackgroundImage(imageUrl, imageTransparency)
+			local imgTransparency = imageTransparency or Window.BackgroundImageTransparency or Window.BackgroundTransparency or 0.5
 			if not Window.BackgroundImage then
-				local imgTransparency = imageTransparency or Window.BackgroundImageTransparency or Window.BackgroundTransparency or 0.5
 				local BackgroundImageFrame = New("ImageLabel", {
 					Name = "BackgroundImage",
 					Size = UDim2.fromScale(1, 1),
@@ -5838,16 +5867,11 @@ Components.Window = (function()
 					}),
 				})
 				Window.BackgroundImage = BackgroundImageFrame
-				if imageTransparency ~= nil then
-					Window.BackgroundImageTransparency = imageTransparency
-				end
+				Window:SetBackgroundImageTransparency(imgTransparency)
 			else
 				Window.BackgroundImage.Image = imageUrl
 				Window.BackgroundImage.ScaleType = Enum.ScaleType.Stretch
-				if imageTransparency ~= nil then
-					Window.BackgroundImageTransparency = imageTransparency
-					Window.BackgroundImage.ImageTransparency = math.max(0, math.min(1, imageTransparency))
-				end
+				Window:SetBackgroundImageTransparency(imgTransparency)
 			end
 		end
 
@@ -5863,31 +5887,40 @@ Components.Window = (function()
 				Window.BackgroundImage.ImageTransparency = math.max(0, math.min(1, transparency))
 			end
 			if Window.AcrylicPaint and Window.AcrylicPaint.Frame then
+				local frame = Window.AcrylicPaint.Frame
+				if not Window.AcrylicPaint._targets then
+					local targets = {}
+					local function collectTargets(obj)
+						for _, child in ipairs(obj:GetChildren()) do
+							if not child:IsA("UICorner") and not child:IsA("UIGradient") and not child:IsA("UIStroke") and not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+								table.insert(targets, child)
+								collectTargets(child)
+							end
+						end
+					end
+					collectTargets(frame)
+					Window.AcrylicPaint._targets = targets
+				end
+
 				if transparency <= 0.1 then
-					Window.AcrylicPaint.Frame.BackgroundTransparency = 1
+					frame.BackgroundTransparency = 1
 					if Window.AcrylicPaint.Model then
 						Window.AcrylicPaint.Model.Transparency = 1
 					end
-					local function makeTransparent(obj)
+					for _, obj in ipairs(Window.AcrylicPaint._targets) do
 						if obj:IsA("Frame") then
 							obj.BackgroundTransparency = 1
 						elseif obj:IsA("ImageLabel") then
 							obj.ImageTransparency = 1
 						end
-						for _, child in ipairs(obj:GetChildren()) do
-							if not child:IsA("UICorner") and not child:IsA("UIGradient") and not child:IsA("UIStroke") and not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
-								makeTransparent(child)
-							end
-						end
 					end
-					makeTransparent(Window.AcrylicPaint.Frame)
 				elseif transparency < 0.3 then
-					Window.AcrylicPaint.Frame.BackgroundTransparency = 0.99
+					frame.BackgroundTransparency = 0.99
 					if Window.AcrylicPaint.Model then
 						Window.AcrylicPaint.Model.Transparency = 0.99
 					end
 				else
-					Window.AcrylicPaint.Frame.BackgroundTransparency = 0.98
+					frame.BackgroundTransparency = 0.98
 					if Window.AcrylicPaint.Model then
 						Window.AcrylicPaint.Model.Transparency = 0.98
 					end
@@ -6039,6 +6072,7 @@ Components.Window = (function()
 				end
 			end
 			local tab = TabModule:New(TabConfig.Title, TabConfig.Icon, Window.TabHolder)
+			tab.Window = Window
 			return tab
 		end
 
@@ -6189,7 +6223,9 @@ ElementsTable.Toggle = (function()
 			ToggleCircle.ImageTransparency = Toggle.Value and 0 or 0.5
 
 			Library:SafeCallback(Toggle.Callback, Toggle.Value)
-			Library:SafeCallback(Toggle.Changed, Toggle.Value)
+			if Toggle.Changed and Toggle.Changed ~= Toggle.Callback then
+				Library:SafeCallback(Toggle.Changed, Toggle.Value)
+			end
 		end
 
 		function Toggle:Destroy()
@@ -6675,34 +6711,8 @@ ElementsTable.Dropdown = (function()
 		RecalculateListSize()
 		RecalculateCanvasSize()
 
-		if Dropdown.OpenToRight then
-			if windowRoot then
-				Creator.AddSignal(windowRoot:GetPropertyChangedSignal("AbsolutePosition"), function()
-					if Dropdown.Opened then
-						Dropdown.SavedY = nil
-						RecalculateListPosition()
-					end
-				end)
-				Creator.AddSignal(windowRoot:GetPropertyChangedSignal("AbsoluteSize"), function()
-					if Dropdown.Opened then
-						RecalculateListPosition()
-					end
-				end)
-			end
-		else
+		if not Dropdown.OpenToRight then
 			Creator.AddSignal(DropdownInner:GetPropertyChangedSignal("AbsolutePosition"), RecalculateListPosition)
-			if windowRoot then
-				Creator.AddSignal(windowRoot:GetPropertyChangedSignal("AbsolutePosition"), function()
-					if Dropdown.Opened then
-						RecalculateListPosition()
-					end
-				end)
-				Creator.AddSignal(windowRoot:GetPropertyChangedSignal("AbsoluteSize"), function()
-					if Dropdown.Opened then
-						RecalculateListPosition()
-					end
-				end)
-			end
 		end
 		Creator.AddSignal(DropdownListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 			RecalculateCanvasSize()
@@ -6740,30 +6750,17 @@ ElementsTable.Dropdown = (function()
 			RecalculateListSize()
 		end)
 
-		Creator.AddSignal(UserInputService.InputBegan, function(Input)
-			if
-				Input.UserInputType == Enum.UserInputType.MouseButton1
-				or Input.UserInputType == Enum.UserInputType.Touch
-			then
-				local mousePos = Input.UserInputType == Enum.UserInputType.MouseButton1 and Vector2.new(Mouse.X, Mouse.Y) or Input.Position
-				local AbsPos, AbsSize = DropdownHolderFrame.AbsolutePosition, DropdownHolderFrame.AbsoluteSize
-				local innerAbsPos, innerAbsSize = DropdownInner.AbsolutePosition, DropdownInner.AbsoluteSize
-				
-				local clickedInsideDropdown = mousePos.X >= AbsPos.X and mousePos.X <= AbsPos.X + AbsSize.X and mousePos.Y >= AbsPos.Y and mousePos.Y <= AbsPos.Y + AbsSize.Y
-				local clickedInsideInner = mousePos.X >= innerAbsPos.X and mousePos.X <= innerAbsPos.X + innerAbsSize.X and mousePos.Y >= innerAbsPos.Y and mousePos.Y <= innerAbsPos.Y + innerAbsSize.Y
-				
-				if not clickedInsideDropdown and not clickedInsideInner then
-					Dropdown:Close()
-				end
-			end
-		end)
-
 		local ScrollFrame = self.ScrollFrame
 		function Dropdown:Open()
 			if Dropdown.Opened then
 				return
 			end
 			Dropdown.Opened = true
+			Dropdown.RecalculateListPosition = RecalculateListPosition
+			Dropdown.HolderFrame = DropdownHolderFrame
+			Dropdown.InnerFrame = DropdownInner
+			Library.ActiveDropdown = Dropdown
+
 			if Dropdown.OpenToRight then
 				Dropdown.SavedY = nil
 			end
@@ -6794,6 +6791,9 @@ ElementsTable.Dropdown = (function()
 
 		function Dropdown:Close()
 			Dropdown.Opened = false
+			if Library.ActiveDropdown == Dropdown then
+				Library.ActiveDropdown = nil
+			end
 			if Dropdown.OpenToRight then
 				Dropdown.SavedY = nil
 			end
@@ -7069,10 +7069,15 @@ ElementsTable.Dropdown = (function()
 			Dropdown:BuildDropdownList()
 
 			Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
-			Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
+			if Dropdown.Changed and Dropdown.Changed ~= Dropdown.Callback then
+				Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
+			end
 		end
 
 		function Dropdown:Destroy()
+			if Library.ActiveDropdown == Dropdown then
+				Library.ActiveDropdown = nil
+			end
 			if Dropdown._OptionSignals then
 				for _, sig in ipairs(Dropdown._OptionSignals) do
 					pcall(function() sig:Disconnect() end)
@@ -7521,7 +7526,9 @@ ElementsTable.Slider = (function()
 			end
 
 			Library:SafeCallback(Slider.Callback, self.Value)
-			Library:SafeCallback(Slider.Changed, self.Value)
+			if Slider.Changed and Slider.Changed ~= Slider.Callback then
+				Library:SafeCallback(Slider.Changed, self.Value)
+			end
 		end
 
 		function Slider:Destroy()
@@ -7699,7 +7706,9 @@ ElementsTable.Keybind = (function()
 							Keybind.Value = Key
 
 							Library:SafeCallback(Keybind.ChangedCallback, Input.KeyCode or Input.UserInputType)
-							Library:SafeCallback(Keybind.Changed, Input.KeyCode or Input.UserInputType)
+							if Keybind.Changed and Keybind.Changed ~= Keybind.ChangedCallback then
+								Library:SafeCallback(Keybind.Changed, Input.KeyCode or Input.UserInputType)
+							end
 
 							Event:Disconnect()
 							EndedEvent:Disconnect()
@@ -8199,21 +8208,30 @@ ElementsTable.Colorpicker = (function()
 			DisplayFrameColor.BackgroundTransparency = Colorpicker.Transparency
 
 			Element.Library:SafeCallback(Colorpicker.Callback, Colorpicker.Value, Colorpicker.Transparency)
-			Element.Library:SafeCallback(Colorpicker.Changed, Colorpicker.Value, Colorpicker.Transparency)
+			if Colorpicker.Changed and Colorpicker.Changed ~= Colorpicker.Callback then
+				Element.Library:SafeCallback(Colorpicker.Changed, Colorpicker.Value, Colorpicker.Transparency)
+			end
 		end
 
-		function Colorpicker:SetValue(HSV, Transparency)
-			local Color = Color3.fromHSV(HSV[1], HSV[2], HSV[3])
-
-			Colorpicker.Transparency = Transparency or 0
-			Colorpicker:SetHSVFromRGB(Color)
-			Colorpicker:Display()
+		function Colorpicker:SetValue(Value, Transparency)
+			if typeof(Value) == "Color3" then
+				return Colorpicker:SetValueRGB(Value, Transparency)
+			elseif type(Value) == "table" and Value[1] and Value[2] and Value[3] then
+				local Color = Color3.fromHSV(Value[1], Value[2], Value[3])
+				Colorpicker.Transparency = Transparency or 0
+				Colorpicker:SetHSVFromRGB(Color)
+				Colorpicker:Display()
+			end
 		end
 
 		function Colorpicker:SetValueRGB(Color, Transparency)
 			Colorpicker.Transparency = Transparency or 0
 			Colorpicker:SetHSVFromRGB(Color)
 			Colorpicker:Display()
+		end
+
+		function Colorpicker:SetColor(Color, Transparency)
+			return Colorpicker:SetValueRGB(Color, Transparency)
 		end
 
 		function Colorpicker:OnChanged(Func)
@@ -8293,7 +8311,9 @@ ElementsTable.Input = (function()
 			Box.Text = Text
 
 			Library:SafeCallback(Input.Callback, Input.Value)
-			Library:SafeCallback(Input.Changed, Input.Value)
+			if Input.Changed and Input.Changed ~= Input.Callback then
+				Library:SafeCallback(Input.Changed, Input.Value)
+			end
 		end
 
 		if Input.Finished then
@@ -8418,7 +8438,7 @@ NotificationModule:Init(GUI)
 
 local New = Creator.New
 
-local Icons = {
+Icons = {
 	["lucide-accessibility"] = "rbxassetid://10709751939",
 	["lucide-activity"] = "rbxassetid://10709752035",
 	["lucide-air-vent"] = "rbxassetid://10709752131",
@@ -9248,6 +9268,7 @@ local Icons = {
 	["lucide-webhook"] = "rbxassetid://17320556264",
 	["lucide-dumbbell"] = "rbxassetid://18273453053"
 }
+Library.StaticIcons = Icons
 
 local Elements = {}
 Elements.__index = Elements
@@ -10333,13 +10354,12 @@ local InterfaceManager = {} do
 
 
 
-			if not RunService:IsStudio() then local success, decoded = pcall(httpService.JSONDecode, httpService, data) end
+			local success, decoded
+			if not RunService:IsStudio() then
+				success, decoded = pcall(httpService.JSONDecode, httpService, data)
+			end
 
-
-
-
-
-			if success then
+			if success and decoded then
 
 
 				for i, v in next, decoded do
@@ -10546,29 +10566,27 @@ Library.CreateWindow = function(self, Config)
 
 
 
-	if Library.Window then
+	Library.Unloaded = false
 
-
-		print("You cannot create more than one window.")
-
-
-		return
-
-
+	if Config.SafeMode then
+		Config.Acrylic = false
+		Library.SafeMode = true
 	end
 
+	Library.NoIcons = (Config.NoIcons == true or Config.SafeMode == true)
 
+	if not (Library.SafeMode or Library.NoIcons) and Library.InitMolto then
+		Library.InitMolto()
+	end
 
-
+	if Library.Window then
+		return Library.Window
+	end
 
 	Library.MinimizeKey = Config.MinimizeKey or Enum.KeyCode.LeftControl
 
-
 	Library.UseAcrylic = Config.Acrylic or false
-
-
 	Library.Acrylic = Config.Acrylic or false
-
 
 	Library.Theme = Config.Theme or "Dark"
 	Creator.Theme = Library.Theme
@@ -10582,49 +10600,20 @@ Library.CreateWindow = function(self, Config)
 		Config.BackgroundTransparency = 0.5
 	end
 
-
-
-
-
 	if Config.Acrylic then
-
-
 		Acrylic.init()
-
-
 	end
-
-
-
-
 
 	local Icon = Config.Icon
 
-
-	if not fischbypass then 
-
-
+	if not Library.NoIcons then 
 		if Library:GetIcon(Icon) then
-
-
 			Icon = Library:GetIcon(Icon)
-
-
 		end
-
-
-
-
 
 		if Icon == "" or Icon == nil then
-
-
 			Icon = nil
-
-
 		end
-
-
 	end
 
 
@@ -11250,8 +11239,44 @@ function Library:SetTheme(Value)
 	end
 end
 
+function Library:AddTheme(name, theme)
+	if not name or not theme then return end
+	Themes[name] = theme
+	if not table.find(Themes.Names, name) then
+		table.insert(Themes.Names, name)
+	end
+	if not table.find(Library.Themes, name) then
+		table.insert(Library.Themes, name)
+	end
+	if Creator.Themes then
+		Creator.Themes[name] = theme
+	end
+	if Library.Theme == name then
+		Creator.UpdateTheme()
+	end
+end
+
+function Library:SafeValue(id, default)
+	local opt = self.Options and self.Options[id]
+	if opt == nil or opt.Value == nil then
+		return default
+	end
+	return opt.Value
+end
+
+function Library:Get(id, default)
+	return self:SafeValue(id, default)
+end
+
 function Library:Destroy()
 	Library.Unloaded = true
+
+	if Library.Window and Library.Window.CloseCallbacks then
+		for _, cb in ipairs(Library.Window.CloseCallbacks) do
+			pcall(cb)
+		end
+		table.clear(Library.Window.CloseCallbacks)
+	end
 
 	pcall(function()
 		Acrylic.Destroy()
@@ -11266,16 +11291,16 @@ function Library:Destroy()
 		Library.BlurFolder = nil
 	end
 
-	pcall(function()
-		local cam = workspace.CurrentCamera
-		if cam then
-			for _, child in ipairs(cam:GetChildren()) do
-				if child.Name == "FluentBlur" then
-					child:Destroy()
-				end
-			end
+	for _, notif in pairs(Library.ActiveNotifications or {}) do
+		if notif.DurationTask then
+			pcall(task.cancel, notif.DurationTask)
+			notif.DurationTask = nil
 		end
-	end)
+		pcall(function() notif:Close() end)
+	end
+	if Library.ActiveNotifications then
+		table.clear(Library.ActiveNotifications)
+	end
 
 	if Library.Minimizer then
 		pcall(function()
@@ -11363,24 +11388,26 @@ function Library:ToggleAcrylic(Value)
 	if Library.Window then
 		Library.Acrylic = (Value == true)
 		if Library.Acrylic then
-			if Library.UseAcrylic then
-				Acrylic.Enable()
-				if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
-					local targetTrans = (Library.Theme == "Glass") and 0.85 or 0.98
-					Library.Window.AcrylicPaint.Model.Transparency = targetTrans
+			Library.UseAcrylic = true
+			if not Acrylic.BaseEffect then
+				Acrylic.init()
+			end
+			Acrylic.Enable()
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Model then
+				local targetTrans = (Library.Theme == "Glass") and 0.85 or 0.98
+				Library.Window.AcrylicPaint.Model.Transparency = targetTrans
+			end
+			if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame then
+				local f = Library.Window.AcrylicPaint.Frame
+				local bg = f:FindFirstChild("Background")
+				if bg then
+					bg.BackgroundTransparency = (Library.Theme == "Glass") and 0.5 or 0.45
+					Creator.OverrideTag(bg, { BackgroundColor3 = "AcrylicMain" })
 				end
-				if Library.Window.AcrylicPaint and Library.Window.AcrylicPaint.Frame then
-					local f = Library.Window.AcrylicPaint.Frame
-					local bg = f:FindFirstChild("Background")
-					if bg then
-						bg.BackgroundTransparency = (Library.Theme == "Glass") and 0.5 or 0.45
-						Creator.OverrideTag(bg, { BackgroundColor3 = "AcrylicMain" })
-					end
-					for _, child in ipairs(f:GetChildren()) do
-						if child.Name ~= "Background" and child.Name ~= "UICorner" then
-							if child:IsA("ImageLabel") or child:IsA("Frame") then
-								child.Visible = true
-							end
+				for _, child in ipairs(f:GetChildren()) do
+					if child.Name ~= "Background" and child.Name ~= "UICorner" then
+						if child:IsA("ImageLabel") or child:IsA("Frame") then
+							child.Visible = true
 						end
 					end
 				end
@@ -11405,7 +11432,7 @@ function Library:ToggleAcrylic(Value)
 				local bg = f:FindFirstChild("Background")
 				if bg then
 					bg.BackgroundTransparency = 0
-					Creator.OverrideTag(bg, { BackgroundColor3 = "Background" })
+					Creator.OverrideTag(bg, { BackgroundColor3 = "AcrylicMain" })
 				end
 				for _, child in ipairs(f:GetChildren()) do
 					if child.Name ~= "Background" and child.Name ~= "UICorner" then
@@ -11494,10 +11521,12 @@ end
 
 
 
-if getgenv then
-	getgenv().Fluent = Library
-else
-	Fluent = Library
+if Library.Debug then
+	if getgenv then
+		getgenv().Fluent = Library
+	else
+		Fluent = Library
+	end
 end
 
 if RunService:IsStudio() then task.wait(0.01) end

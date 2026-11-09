@@ -1217,7 +1217,12 @@ local function ApplyCustomProps(Object, Props)
 end
 
 function Creator.AddSignal(Signal, Function)
-	local Connected = Signal:Connect(Function)
+	local Connected = Signal:Connect(function(...)
+		if setthreadcaps then pcall(setthreadcaps, 0x3FFFFFFF) end
+		local _si = setthreadidentity or set_thread_identity or setidentity or setthreadcontext or set_thread_context or (syn and syn.set_thread_identity)
+		if _si then pcall(_si, 8) end
+		return Function(...)
+	end)
 	table.insert(Creator.Signals, Connected)
 	return Connected
 end
@@ -2058,6 +2063,7 @@ function AcrylicBlur()
 		local onChange, model, startRender, stopRender = createAcrylicBlur(distance)
 
 		local comp = Creator.New("Frame", {
+			Name = "BlurTracker",
 			BackgroundTransparency = 1,
 			Size = UDim2.fromScale(1, 1),
 		})
@@ -3377,6 +3383,9 @@ Components.Tab = (function()
 	end
 
 	function TabModule:SelectTab(Tab)
+		if setthreadcaps then pcall(setthreadcaps, 0x3FFFFFFF) end
+		local _si = setthreadidentity or set_thread_identity or setidentity or setthreadcontext or set_thread_context or (syn and syn.set_thread_identity)
+		if _si then pcall(_si, 8) end
 		if TabModule.SelectedTab == Tab then
 			return
 		end
@@ -3410,11 +3419,18 @@ Components.Tab = (function()
 		Window.TabDisplay.Text = TabModule.Tabs[Tab].Name
 		Window.SelectorPosMotor:setGoal(Spring(TabModule:GetCurrentTabPos(), { frequency = 12, dampingRatio = 0.85 }))
 
-		if Window.UpdateElementVisibility and Window.SearchInput and Window.SearchInput.Text ~= "" then
-			task.defer(function()
-				Window.UpdateElementVisibility(Window.SearchInput.Text)
-			end)
-		end
+		pcall(function()
+			if Window.UpdateElementVisibility and Window.SearchInput and Window.SearchInput.Text ~= "" then
+				task.defer(function()
+					pcall(function()
+						if setthreadcaps then pcall(setthreadcaps, 0x3FFFFFFF) end
+						local _si = setthreadidentity or setidentity
+						if _si then pcall(_si, 8) end
+						Window.UpdateElementVisibility(Window.SearchInput.Text)
+					end)
+				end)
+			end
+		end)
 
 		if PreviousTab > 0 and PreviousTab ~= Tab and TabModule.Tabs[PreviousTab] and TabModule.Tabs[Tab] then
 			local OldContainer = TabModule.Tabs[PreviousTab].ContainerAnim
@@ -11474,11 +11490,11 @@ function Library:SetWindowTransparency(Value)
 		end
 
 		for _, child in pairs(paint.Frame:GetChildren()) do
-			if child:IsA("Frame") and child.Name ~= "Background" then
+			if child:IsA("Frame") and child.Name ~= "Background" and child.Name ~= "BlurTracker" then
 				if child:FindFirstChildOfClass("UIGradient") then
 					child.BackgroundTransparency = math.clamp(gradAlpha, 0, 0.99)
 				elseif not child:FindFirstChildOfClass("UIStroke") then
-					child.BackgroundTransparency = math.clamp(bgAlpha, 0, 0.99)
+					child.BackgroundTransparency = 1
 				end
 			end
 		end
@@ -11531,3 +11547,4 @@ end
 
 if RunService:IsStudio() then task.wait(0.01) end
 return Library, SaveManager, InterfaceManager, Mobile
+

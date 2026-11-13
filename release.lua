@@ -649,6 +649,12 @@ function Library:GetIcon(Name, Provider)
 		if p and n then
 			prov = p
 			name = n
+		elseif name:find("^phosphor%-") then
+			local hp, hn = name:match("^([%w_]+)%-(.+)$")
+			if hp and hn then
+				prov = hp
+				name = hn
+			end
 		end
 	end
 	if Library.Molto and Library.Molto.GetAsset then
@@ -1722,6 +1728,9 @@ local function setupMiniMessageSupport(object, properties)
 end
 
 function Creator.New(Name, Properties, Children)
+	if setthreadcaps then pcall(setthreadcaps, 0x3FFFFFFF) end
+	local _si = setthreadidentity or set_thread_identity or setidentity or setthreadcontext or set_thread_context or (syn and syn.set_thread_identity)
+	if _si then pcall(_si, 8) end
 	local Object = Instance.new(Name)
 
 	for Name, Value in next, Creator.DefaultProperties[Name] or {} do
@@ -1865,6 +1874,9 @@ function Library:SafeCallback(Function, ...)
 			SubContent = "Check internal log",
 			Duration = 5,
 		})
+	end
+	if Library._OnOptionChanged then
+		pcall(Library._OnOptionChanged)
 	end
 	return Event
 end
@@ -2414,7 +2426,7 @@ Components.Element = (function()
 		end
 
 		Element.Frame = New("TextButton", {
-			Visible = Options.Visible and Options.Visible or true,
+			Visible = (Options.Visible ~= false),
 			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundTransparency = 0.89,
 			BackgroundColor3 = Color3.fromRGB(130, 130, 130),
@@ -2504,8 +2516,155 @@ Components.Element = (function()
 		end
 
 		function Element:Visible(Bool)
-			Element.Frame.Visible = Bool
+			Element.Frame.Visible = (Bool == true)
 		end
+		Element.SetVisible = Element.Visible
+
+		local disabledOverlay = nil
+		local disabledReasonLabel = nil
+		function Element:SetDisabled(Disabled, Reason)
+			local isDisabled = (Disabled == true)
+			Element._Disabled = isDisabled
+			if isDisabled then
+				if not disabledOverlay then
+					disabledReasonLabel = New("TextLabel", {
+						BackgroundTransparency = 1,
+						Text = Reason and tostring(Reason) or "Locked",
+						FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+						TextSize = 11,
+						TextXAlignment = Enum.TextXAlignment.Right,
+						Size = UDim2.new(0, 140, 1, 0),
+						Position = UDim2.new(1, -12, 0, 0),
+						AnchorPoint = Vector2.new(1, 0),
+						ZIndex = 22,
+						ThemeTag = {
+							TextColor3 = "SubText",
+						},
+					})
+					disabledOverlay = New("TextButton", {
+						Name = "DisabledOverlay",
+						Size = UDim2.fromScale(1, 1),
+						BackgroundColor3 = Color3.fromRGB(10, 10, 14),
+						BackgroundTransparency = 0.45,
+						Text = "",
+						AutoButtonColor = false,
+						Active = true,
+						ZIndex = 20,
+						Parent = Element.Frame,
+					}, {
+						New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+						disabledReasonLabel,
+					})
+				else
+					disabledOverlay.Visible = true
+					if disabledReasonLabel then
+						disabledReasonLabel.Text = Reason and tostring(Reason) or "Locked"
+					end
+				end
+				Element.TitleLabel.TextTransparency = 0.45
+				Element.DescLabel.TextTransparency = 0.65
+			else
+				if disabledOverlay then
+					disabledOverlay.Visible = false
+				end
+				Element.TitleLabel.TextTransparency = 0
+				Element.DescLabel.TextTransparency = 0.4
+			end
+		end
+
+		local function getTooltipBox()
+			if Library._TooltipFrame and Library._TooltipFrame.Parent then
+				return Library._TooltipFrame, Library._TooltipLabel
+			end
+			local label = New("TextLabel", {
+				BackgroundTransparency = 1,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+				TextSize = 12,
+				TextWrapped = true,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Text = "",
+				ZIndex = 99999999,
+				ThemeTag = { TextColor3 = "Text" },
+			})
+			local frame = New("Frame", {
+				Name = "FluentTooltip",
+				AutomaticSize = Enum.AutomaticSize.XY,
+				BackgroundTransparency = 0.08,
+				Visible = false,
+				ZIndex = 99999998,
+				Parent = Library.GUI,
+				ThemeTag = { BackgroundColor3 = "AcrylicMain" },
+			}, {
+				New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+				New("UIPadding", {
+					PaddingLeft = UDim.new(0, 8),
+					PaddingRight = UDim.new(0, 8),
+					PaddingTop = UDim.new(0, 5),
+					PaddingBottom = UDim.new(0, 5),
+				}),
+				New("UIStroke", {
+					Thickness = 1,
+					Transparency = 0.35,
+					ThemeTag = { Color = "ElementBorder" },
+				}),
+				New("UISizeConstraint", { MaxSize = Vector2.new(260, 140) }),
+				label,
+			})
+			Library._TooltipFrame = frame
+			Library._TooltipLabel = label
+			return frame, label
+		end
+
+		local tooltipText = Options and Options.Tooltip
+		local tooltipHovered = false
+		local function updateTooltipPos()
+			local frame = Library._TooltipFrame
+			if not frame or not frame.Visible then return end
+			local pos = UserInputService:GetMouseLocation()
+			frame.Position = UDim2.fromOffset(pos.X + 14, pos.Y + 14)
+		end
+
+		function Element:SetTooltip(newText)
+			tooltipText = newText
+			if tooltipHovered and Library._TooltipLabel then
+				if newText and newText ~= "" then
+					Library._TooltipLabel.Text = tostring(newText)
+				else
+					if Library._TooltipFrame then Library._TooltipFrame.Visible = false end
+				end
+			end
+		end
+
+		function Element:_SetResetCallback(fn)
+			Element._ResetCallback = fn
+		end
+
+		Creator.AddSignal(Element.Frame.MouseEnter, function()
+			if tooltipText and tooltipText ~= "" then
+				tooltipHovered = true
+				local frame, label = getTooltipBox()
+				label.Text = tostring(tooltipText)
+				frame.Visible = true
+				updateTooltipPos()
+			end
+		end)
+		Creator.AddSignal(Element.Frame.MouseMoved, function()
+			if tooltipHovered then
+				updateTooltipPos()
+			end
+		end)
+		Creator.AddSignal(Element.Frame.MouseLeave, function()
+			tooltipHovered = false
+			if Library._TooltipFrame then
+				Library._TooltipFrame.Visible = false
+			end
+		end)
+		Creator.AddSignal(Element.Frame.InputBegan, function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton2 and not Element._Disabled and Element._ResetCallback then
+				pcall(Element._ResetCallback)
+			end
+		end)
 
 		function Element:SetDesc(Set)
 			if Set == nil then
@@ -3212,13 +3371,21 @@ Components.Tab = (function()
 				Section.ScrollFrame = SubTab.Container
 				Section.Frame = SectionFrame.Root
 				Section.SetCollapsed = function(self, val) SectionFrame:SetCollapsed(val) end
-				Section.Toggle = function(self) SectionFrame:Toggle() end
+				Section.ToggleSection = function(self) SectionFrame:Toggle() end
+				Section.Toggle = function(self, Idx, Config)
+					if Config ~= nil or type(Idx) == "table" or (type(Idx) == "string" and Idx ~= "") then
+						return self:AddToggle(Idx, Config)
+					end
+					return SectionFrame:Toggle()
+				end
 				Section.Collapse = function(self) SectionFrame:SetCollapsed(true) end
 				Section.Expand = function(self) SectionFrame:SetCollapsed(false) end
 
 				setmetatable(Section, Elements)
 				return Section
 			end
+
+			SubTab.Section = SubTab.AddSection
 
 			setmetatable(SubTab, Elements)
 			return SubTab
@@ -3370,13 +3537,21 @@ Components.Tab = (function()
 			Section.ScrollFrame = Tab.Container
 			Section.Frame = SectionFrame.Root
 			Section.SetCollapsed = function(self, val) SectionFrame:SetCollapsed(val) end
-			Section.Toggle = function(self) SectionFrame:Toggle() end
+			Section.ToggleSection = function(self) SectionFrame:Toggle() end
+			Section.Toggle = function(self, Idx, Config)
+				if Config ~= nil or type(Idx) == "table" or (type(Idx) == "string" and Idx ~= "") then
+					return self:AddToggle(Idx, Config)
+				end
+				return SectionFrame:Toggle()
+			end
 			Section.Collapse = function(self) SectionFrame:SetCollapsed(true) end
 			Section.Expand = function(self) SectionFrame:SetCollapsed(false) end
 
 			setmetatable(Section, Elements)
 			return Section
 		end
+
+		Tab.Section = Tab.AddSection
 
 		setmetatable(Tab, Elements)
 		return Tab
@@ -3432,7 +3607,7 @@ Components.Tab = (function()
 			end
 		end)
 
-		if PreviousTab > 0 and PreviousTab ~= Tab and TabModule.Tabs[PreviousTab] and TabModule.Tabs[Tab] then
+		if Window.Root and Window.Root.Visible and PreviousTab > 0 and PreviousTab ~= Tab and TabModule.Tabs[PreviousTab] and TabModule.Tabs[Tab] then
 			local OldContainer = TabModule.Tabs[PreviousTab].ContainerAnim
 			local NewContainer = TabModule.Tabs[Tab].ContainerAnim
 			local OldTab = TabModule.Tabs[PreviousTab]
@@ -4142,8 +4317,8 @@ Components.Textbox = (function()
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
-			Position = UDim2.fromOffset(10, 0),
+			Size = UDim2.new(0, 4000, 1, 0),
+			Position = UDim2.fromOffset(2, 0),
 			ThemeTag = {
 				TextColor3 = "Text",
 				PlaceholderColor3 = "SubText",
@@ -4449,7 +4624,7 @@ Components.Window = (function()
 		local Window = {
 			Minimized = false,
 			Maximized = false,
-			Size = Config.Size,
+			Size = Config.Size or UDim2.fromOffset(580, 460),
 			CurrentPos = 0,
 			TabWidth = 0,
 			Position = UDim2.fromOffset(0, 0),
@@ -4465,7 +4640,8 @@ Components.Window = (function()
 		Window.AcrylicPaint = Acrylic.AcrylicPaint()
 
 		local function CenterWindow()
-			local vp = Camera.ViewportSize
+			local cam = game:GetService("Workspace").CurrentCamera or Camera
+			local vp = (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
 			if vp.X > 50 and vp.Y > 50 then
 				local isSmallScreen = Mobile or (vp.X < 640)
 				local maxW = math.max(isSmallScreen and 280 or 320, vp.X - (isSmallScreen and 10 or 20))
@@ -5304,6 +5480,53 @@ Components.Window = (function()
 		Creator.AddSignal(Window.Root:GetPropertyChangedSignal("AbsolutePosition"), onWindowRootMoveOrResize)
 		Creator.AddSignal(Window.Root:GetPropertyChangedSignal("AbsoluteSize"), onWindowRootMoveOrResize)
 
+		local LoaderShadow = New("ImageLabel", {
+			Name = "LoaderShadow",
+			Image = "rbxassetid://8992230677",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(Vector2.new(99, 99), Vector2.new(99, 99)),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Size = UDim2.new(1, 64, 1, 64),
+			Position = UDim2.fromScale(0.5, 0.5),
+			BackgroundTransparency = 1,
+			ImageColor3 = Color3.fromRGB(0, 0, 0),
+			ImageTransparency = 0.45,
+			ZIndex = 49,
+		})
+
+		local LoaderStroke = New("UIStroke", {
+			Thickness = 1.2,
+			Transparency = 0.2,
+			ThemeTag = {
+				Color = "Accent",
+			},
+		}, {
+			New("UIGradient", {
+				Rotation = 45,
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(76, 194, 255)),
+					ColorSequenceKeypoint.new(0.5, Color3.fromRGB(140, 90, 255)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(76, 194, 255)),
+				}),
+				ThemeTag = {
+					Color = "AccentGradient",
+				},
+			}),
+		})
+
+		local LoaderBackdrop = nil
+		if Config.LoadingStyle == "Overlay" then
+			LoaderBackdrop = New("Frame", {
+				Name = "FluentLoaderBackdrop",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = Color3.fromRGB(8, 10, 14),
+				BackgroundTransparency = 0.45,
+				Active = true,
+				ZIndex = 48,
+				Parent = Config.Parent,
+			})
+		end
+
 		local Loader = New("Frame", {
 			Name = "FluentLoader",
 			Size = UDim2.fromOffset(260, 68),
@@ -5317,41 +5540,11 @@ Components.Window = (function()
 				BackgroundColor3 = "AcrylicMain",
 			},
 		}, {
-			New("ImageLabel", {
-				Name = "LoaderShadow",
-				Image = "rbxassetid://8992230677",
-				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(Vector2.new(99, 99), Vector2.new(99, 99)),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Size = UDim2.new(1, 64, 1, 64),
-				Position = UDim2.fromScale(0.5, 0.5),
-				BackgroundTransparency = 1,
-				ImageColor3 = Color3.fromRGB(0, 0, 0),
-				ImageTransparency = 0.45,
-				ZIndex = 49,
-			}),
+			LoaderShadow,
 			New("UICorner", {
 				CornerRadius = UDim.new(0, 14),
 			}),
-			New("UIStroke", {
-				Thickness = 1.2,
-				Transparency = 0.2,
-				ThemeTag = {
-					Color = "Accent",
-				},
-			}, {
-				New("UIGradient", {
-					Rotation = 45,
-					Color = ColorSequence.new({
-						ColorSequenceKeypoint.new(0, Color3.fromRGB(76, 194, 255)),
-						ColorSequenceKeypoint.new(0.5, Color3.fromRGB(140, 90, 255)),
-						ColorSequenceKeypoint.new(1, Color3.fromRGB(76, 194, 255)),
-					}),
-					ThemeTag = {
-						Color = "AccentGradient",
-					},
-				}),
-			}),
+			LoaderStroke,
 		})
 
 		local LoaderScale = New("UIScale", {
@@ -5382,7 +5575,7 @@ Components.Window = (function()
 		spinTween:Play()
 
 		local LoaderTitle = New("TextLabel", {
-			Size = UDim2.new(1, -56, 0, 16),
+			Size = UDim2.new(1, -104, 0, 16),
 			Position = UDim2.new(0, 48, 0, 14),
 			BackgroundTransparency = 1,
 			Text = Config.Title or "FluentXY",
@@ -5394,6 +5587,23 @@ Components.Window = (function()
 			Parent = Loader,
 			ThemeTag = {
 				TextColor3 = "Text",
+			},
+		})
+
+		local LoaderPercent = New("TextLabel", {
+			Size = UDim2.new(0, 44, 0, 16),
+			Position = UDim2.new(1, -18, 0, 14),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			Text = "0%",
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+			TextSize = 11,
+			TextColor3 = Color3.fromRGB(160, 180, 210),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			ZIndex = 51,
+			Parent = Loader,
+			ThemeTag = {
+				TextColor3 = "Accent",
 			},
 		})
 
@@ -5440,31 +5650,55 @@ Components.Window = (function()
 			}),
 		})
 
-		TweenService:Create(ProgressFill, TweenInfo.new(1.15, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-			Size = UDim2.new(1, 0, 1, 0),
-		}):Play()
+		local minLoadTime = (type(Config.LoadingTime) == "number" and Config.LoadingTime) or 0.95
+		local progressTween = TweenService:Create(ProgressFill, TweenInfo.new(math.max(0.2, minLoadTime * 0.9), Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0.92, 0, 1, 0),
+		})
+		progressTween:Play()
 
 		local startTime = os.clock()
 		local EntrancePlayed = false
+		local ManualLoading = (Config.ManualLoading == true)
+		local FinishScheduled = false
+		local CustomStatusSet = false
 
-		task.delay(0.35, function()
-			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed then
-				LoaderStatus.Text = "Configuring interface..."
+		local percentConn
+		percentConn = Creator.AddSignal(RunService.Heartbeat, function()
+			if EntrancePlayed or not ProgressFill or not ProgressFill.Parent then
+				if percentConn then pcall(function() percentConn:Disconnect() end) end
+				percentConn = nil
+				return
+			end
+			if LoaderPercent and LoaderPercent.Parent then
+				local pct = math.clamp(math.floor((ProgressFill.Size.X.Scale or 0) * 100 + 0.5), 0, 100)
+				LoaderPercent.Text = tostring(pct) .. "%"
 			end
 		end)
 
-		task.delay(0.75, function()
-			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed then
-				LoaderStatus.Text = "Loading components..."
+		function Window:SetLoadingStatus(text, progress)
+			if EntrancePlayed then return end
+			CustomStatusSet = true
+			if LoaderStatus and LoaderStatus.Parent and text ~= nil then
+				LoaderStatus.Text = tostring(text)
 			end
-		end)
+			if type(progress) == "number" and ProgressFill and ProgressFill.Parent then
+				pcall(function() progressTween:Cancel() end)
+				local clamped = math.clamp(progress, 0, 1)
+				progressTween = TweenService:Create(ProgressFill, TweenInfo.new(0.22, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+					Size = UDim2.new(clamped, 0, 1, 0),
+				})
+				progressTween:Play()
+			end
+		end
 
-		task.delay(1.1, function()
-			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed then
-				LoaderStatus.Text = "Ready!"
-				LoaderStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
-			end
-		end)
+		function Window:SetLoadingProgress(current, total, label)
+			local ratio = (type(total) == "number" and total > 0) and math.clamp((tonumber(current) or 0) / total, 0, 1) or 0
+			Window:SetLoadingStatus(label, ratio)
+		end
+
+		function Window:BeginLoading()
+			ManualLoading = true
+		end
 
 		function Window:PlayEntrance()
 			if EntrancePlayed then return end
@@ -5494,19 +5728,79 @@ Components.Window = (function()
 			if Loader and Loader.Parent then
 				task.spawn(function()
 					pcall(function()
+						if percentConn then percentConn:Disconnect() end
 						spinTween:Cancel()
-						local shadow = Loader:FindFirstChild("LoaderShadow")
-						if shadow then
-							TweenService:Create(shadow, TweenInfo.new(0.15), { ImageTransparency = 1 }):Play()
+						local fadeInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+						TweenService:Create(LoaderScale, fadeInfo, { Scale = 0.92 }):Play()
+						TweenService:Create(LoaderShadow, fadeInfo, { ImageTransparency = 1 }):Play()
+						TweenService:Create(LoaderStroke, fadeInfo, { Transparency = 1 }):Play()
+						TweenService:Create(Loader, fadeInfo, { BackgroundTransparency = 1 }):Play()
+						TweenService:Create(LoaderIcon, fadeInfo, { ImageTransparency = 1 }):Play()
+						TweenService:Create(LoaderTitle, fadeInfo, { TextTransparency = 1 }):Play()
+						TweenService:Create(LoaderPercent, fadeInfo, { TextTransparency = 1 }):Play()
+						TweenService:Create(LoaderStatus, fadeInfo, { TextTransparency = 1 }):Play()
+						TweenService:Create(ProgressTrack, fadeInfo, { BackgroundTransparency = 1 }):Play()
+						TweenService:Create(ProgressFill, fadeInfo, { BackgroundTransparency = 1 }):Play()
+						if LoaderBackdrop and LoaderBackdrop.Parent then
+							TweenService:Create(LoaderBackdrop, fadeInfo, { BackgroundTransparency = 1 }):Play()
 						end
-						TweenService:Create(Loader, TweenInfo.new(0.18), { BackgroundTransparency = 1 }):Play()
 					end)
 					task.wait(0.2)
 					pcall(function() Loader:Destroy() end)
+					if LoaderBackdrop then pcall(function() LoaderBackdrop:Destroy() end) end
 				end)
 			end
 		end
-		Window:PlayEntrance()
+
+		function Window:FinishLoading()
+			if EntrancePlayed or FinishScheduled then return end
+			FinishScheduled = true
+			task.spawn(function()
+				local remaining = minLoadTime - (os.clock() - startTime)
+				if remaining > 0 then
+					task.wait(remaining)
+				end
+				if EntrancePlayed then return end
+				if LoaderStatus and LoaderStatus.Parent then
+					LoaderStatus.Text = "Ready!"
+				end
+				if ProgressFill and ProgressFill.Parent then
+					pcall(function() progressTween:Cancel() end)
+					TweenService:Create(ProgressFill, TweenInfo.new(0.15, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+						Size = UDim2.new(1, 0, 1, 0),
+					}):Play()
+				end
+				task.wait(0.16)
+				Window:PlayEntrance()
+			end)
+		end
+		Window.Ready = Window.FinishLoading
+
+		task.delay(math.max(0.15, minLoadTime * 0.35), function()
+			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed and not CustomStatusSet then
+				LoaderStatus.Text = "Configuring interface..."
+			end
+		end)
+
+		task.delay(math.max(0.35, minLoadTime * 0.72), function()
+			if LoaderStatus and LoaderStatus.Parent and not EntrancePlayed and not CustomStatusSet then
+				LoaderStatus.Text = "Loading components..."
+			end
+		end)
+
+		function Window._AutoFinishLoading()
+			if not ManualLoading and not EntrancePlayed and not FinishScheduled then
+				Window:FinishLoading()
+			end
+		end
+
+		if Config.LoadingScreen == false then
+			Window:PlayEntrance()
+		elseif not ManualLoading then
+			task.defer(function()
+				Window._AutoFinishLoading()
+			end)
+		end
 
 		_G.CDDrag = 0
 		Window.SelectorPosMotor = Flipper.SingleMotor.new(17)
@@ -6094,10 +6388,8 @@ Components.Window = (function()
 
 		function Window:SelectTab(Tab)
 			TabModule:SelectTab(Tab)
-			if Window.PlayEntrance then
-				task.spawn(function()
-					Window:PlayEntrance()
-				end)
+			if Window._AutoFinishLoading then
+				Window._AutoFinishLoading()
 			end
 		end
 
@@ -6119,8 +6411,15 @@ ElementsTable.Button = (function()
 	Element.__index = Element
 	Element.__type = "Button"
 
-	function Element:New(Config)
+	function Element:New(Idx, Config)
+		if type(Idx) == "table" then
+			Config = Idx
+		else
+			Config = type(Config) == "table" and Config or { Title = tostring(Idx or "") }
+			Config.Title = Config.Title or (type(Idx) == "string" and Idx)
+		end
 		assert(Config.Title, "Button - Missing Title")
+		Config.Description = Config.Description or Config.Desc
 		Config.Callback = Config.Callback or function() end
 
 		local ButtonFrame = Components.Element(Config.Title, Config.Description, self.Container, true, Config)
@@ -6282,15 +6581,29 @@ ElementsTable.Dropdown = (function()
 			end
 		end
 		
+		local function getPlayerListValues()
+			local list = {}
+			local excludeSelf = (Config.ExcludeLocalPlayer ~= false)
+			for _, plr in ipairs(Players:GetPlayers()) do
+				if not excludeSelf or plr ~= LocalPlayer then
+					table.insert(list, Config.UseDisplayName and plr.DisplayName or plr.Name)
+				end
+			end
+			table.sort(list)
+			return list
+		end
+
+		local initialValues = Config.PlayerList and getPlayerListValues() or (Config.Values or {})
+
 		local Dropdown = {
-			Values = Config.Values,
+			Values = initialValues,
 			Value = Config.Default,
 			Multi = Config.Multi,
 			Buttons = {},
 			Opened = false,
 			Type = "Dropdown",
 			Callback = Config.Callback or function() end,
-			Search = (Config.Search == nil) and (#(Config.Values or {}) >= 5) or (Config.Search == true),
+			Search = (Config.Search == nil) and (#initialValues >= 5) or (Config.Search == true),
 			KeepSearch = Config.KeepSearch == true,
 			OpenToRight = windowDropdownsOutside
 		}
@@ -7058,6 +7371,47 @@ ElementsTable.Dropdown = (function()
 			Dropdown:BuildDropdownList()
 		end
 
+		function Dropdown:Refresh(NewValues, KeepSelection)
+			local values = NewValues or (Config.PlayerList and getPlayerListValues()) or Dropdown.Values or {}
+			Dropdown.Values = values
+			if KeepSelection ~= false then
+				if Dropdown.Multi and type(Dropdown.Value) == "table" then
+					local kept = {}
+					for val, active in pairs(Dropdown.Value) do
+						if active and table.find(values, val) then
+							kept[val] = true
+						end
+					end
+					Dropdown.Value = kept
+				elseif Dropdown.Value ~= nil and not table.find(values, Dropdown.Value) then
+					Dropdown.Value = nil
+				end
+			else
+				Dropdown.Value = Dropdown.Multi and {} or nil
+			end
+			Dropdown:BuildDropdownList()
+			Dropdown:Display()
+		end
+
+		if Config.PlayerList then
+			Dropdown._PlayerConns = {
+				Creator.AddSignal(Players.PlayerAdded, function()
+					task.defer(function()
+						if Dropdown.Frame and Dropdown.Frame.Parent then
+							Dropdown:Refresh(getPlayerListValues(), true)
+						end
+					end)
+				end),
+				Creator.AddSignal(Players.PlayerRemoving, function()
+					task.defer(function()
+						if Dropdown.Frame and Dropdown.Frame.Parent then
+							Dropdown:Refresh(getPlayerListValues(), true)
+						end
+					end)
+				end),
+			}
+		end
+
 		function Dropdown:OnChanged(Func)
 			Dropdown.Changed = Func
 			Func(Dropdown.Value)
@@ -7091,6 +7445,12 @@ ElementsTable.Dropdown = (function()
 		end
 
 		function Dropdown:Destroy()
+			if Dropdown._PlayerConns then
+				for _, conn in ipairs(Dropdown._PlayerConns) do
+					pcall(function() conn:Disconnect() end)
+				end
+				table.clear(Dropdown._PlayerConns)
+			end
 			if Library.ActiveDropdown == Dropdown then
 				Library.ActiveDropdown = nil
 			end
@@ -7178,19 +7538,49 @@ ElementsTable.Paragraph = (function()
 	Paragraph.__index = Paragraph
 	Paragraph.__type = "Paragraph"
 
-	function Paragraph:New(Config)
-		Config.Content = Config.Content or ""
+	function Paragraph:New(Idx, Config)
+		if type(Idx) == "table" then
+			Config = Idx
+		elseif type(Config) == "table" then
+			Config.Title = Config.Title or (type(Idx) == "string" and Idx) or ""
+		else
+			Config = { Title = tostring(Idx or ""), Content = tostring(Config or "") }
+		end
+		Config.Title = Config.Title or ""
+		Config.Content = Config.Content or Config.Description or Config.Desc or ""
 
-		local Paragraph = Components.Element(Config.Title, Config.Content, Paragraph.Container, false, Config)
-		Paragraph.Frame.BackgroundTransparency = 0.92
-		Paragraph.Border.Transparency = 0.6
+		local ParagraphObj = Components.Element(Config.Title, Config.Content, Paragraph.Container, false, Config)
+		ParagraphObj.Frame.BackgroundTransparency = 0.92
+		ParagraphObj.Border.Transparency = 0.6
 
-		Paragraph.SetTitle = Paragraph.SetTitle
-		Paragraph.SetDesc = Paragraph.SetDesc
-		Paragraph.Visible = Paragraph.Visible
-		Paragraph.Elements = Paragraph
+		local function updateContent(selfP, content, title)
+			local descText = tostring(content or "")
+			if selfP.SetDesc then
+				selfP:SetDesc(descText)
+			elseif selfP.DescLabel then
+				selfP.DescLabel.Text = descText
+			end
+			if title ~= nil then
+				if selfP.SetTitle then
+					selfP:SetTitle(tostring(title))
+				elseif selfP.TitleLabel then
+					selfP.TitleLabel.Text = tostring(title)
+				end
+			end
+		end
 
-		return Paragraph
+		ParagraphObj.SetValue = updateContent
+		ParagraphObj.SetContent = updateContent
+		ParagraphObj.SetText = updateContent
+		ParagraphObj.SetDescription = updateContent
+		ParagraphObj.GetValue = function(selfP)
+			return (selfP.GetDesc and selfP:GetDesc()) or (selfP.DescLabel and selfP.DescLabel.Text) or ""
+		end
+		ParagraphObj.GetContent = ParagraphObj.GetValue
+		ParagraphObj.Visible = ParagraphObj.Visible
+		ParagraphObj.Elements = ParagraphObj
+
+		return ParagraphObj
 	end
 
 	return Paragraph
@@ -8306,7 +8696,7 @@ ElementsTable.Input = (function()
 		local Textbox = Components.Textbox(InputFrame.Frame, true)
 		Textbox.Frame.Position = UDim2.new(1, -10, 0.5, 0)
 		Textbox.Frame.AnchorPoint = Vector2.new(1, 0.5)
-		Textbox.Frame.Size = UDim2.fromOffset(160, 30)
+		Textbox.Frame.Size = UDim2.fromOffset(Config.Width or 200, 30)
 		Textbox.Input.Text = Config.Default or ""
 		Textbox.Input.PlaceholderText = Config.Placeholder or ""
 
@@ -8444,6 +8834,288 @@ ElementsTable.SearchBar = (function()
 
 		Library.Options[Idx] = SearchBar
 		return SearchBar
+	end
+
+	return Element
+end)()
+ElementsTable.Divider = (function()
+	local Element = {}
+	Element.__index = Element
+	Element.__type = "Divider"
+
+	function Element:New(Idx, Config)
+		if type(Idx) == "table" then
+			Config = Idx
+		elseif type(Idx) == "string" and Config == nil then
+			Config = { Text = Idx }
+		else
+			Config = Config or {}
+		end
+
+		local text = Config.Text or Config.Title or ""
+		local hasText = type(text) == "string" and text ~= ""
+		local nextOrder = 1
+		if self.Container then
+			local count = (self.Container:GetAttribute("ElementOrderCount") or 0) + 1
+			pcall(function() self.Container:SetAttribute("ElementOrderCount", count) end)
+			nextOrder = count
+		end
+
+		local Root = New("Frame", {
+			Name = "Divider",
+			Size = UDim2.new(1, 0, 0, hasText and 20 or 10),
+			BackgroundTransparency = 1,
+			LayoutOrder = nextOrder,
+			Parent = self.Container,
+		})
+
+		local LeftLine = New("Frame", {
+			Size = hasText and UDim2.new(0.5, -10, 0, 1) or UDim2.new(1, 0, 0, 1),
+			Position = UDim2.new(0, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			BackgroundTransparency = 0.55,
+			BorderSizePixel = 0,
+			Parent = Root,
+			ThemeTag = { BackgroundColor3 = "ElementBorder" },
+		})
+
+		local Label
+		local RightLine
+		if hasText then
+			Label = New("TextLabel", {
+				AutomaticSize = Enum.AutomaticSize.X,
+				Size = UDim2.new(0, 0, 1, 0),
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundTransparency = 1,
+				Text = text,
+				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+				TextSize = 11,
+				Parent = Root,
+				ThemeTag = { TextColor3 = "SubText" },
+			})
+			RightLine = New("Frame", {
+				Size = UDim2.new(0.5, -10, 0, 1),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				BackgroundTransparency = 0.55,
+				BorderSizePixel = 0,
+				Parent = Root,
+				ThemeTag = { BackgroundColor3 = "ElementBorder" },
+			})
+			local function syncLines()
+				local halfW = math.max(0, (Label.AbsoluteSize.X / 2) + 8)
+				LeftLine.Size = UDim2.new(0.5, -halfW, 0, 1)
+				RightLine.Size = UDim2.new(0.5, -halfW, 0, 1)
+			end
+			Creator.AddSignal(Label:GetPropertyChangedSignal("AbsoluteSize"), syncLines)
+			task.defer(syncLines)
+		end
+
+		local Divider = {
+			Frame = Root,
+			Type = "Divider",
+			SetText = function(_, t)
+				if Label then Label.Text = tostring(t or "") end
+			end,
+			SetVisible = function(_, v) Root.Visible = (v == true) end,
+			Visible = function(_, v) Root.Visible = (v == true) end,
+			Destroy = function() pcall(function() Root:Destroy() end) end,
+		}
+		return Divider
+	end
+
+	return Element
+end)()
+ElementsTable.ProgressBar = (function()
+	local Element = {}
+	Element.__index = Element
+	Element.__type = "ProgressBar"
+
+	function Element:New(Idx, Config)
+		if type(Idx) == "table" then
+			Config = Idx
+			Idx = Config.Title or "ProgressBar"
+		end
+		Config = Config or {}
+		assert(Config.Title, "ProgressBar - Missing Title")
+
+		local Bar = {
+			Value = math.clamp(tonumber(Config.Default) or 0, 0, 1),
+			Type = "ProgressBar",
+		}
+
+		local BarFrame = Components.Element(Config.Title, Config.Description or "", self.Container, false, Config)
+		BarFrame.Frame.BackgroundTransparency = 0.92
+		BarFrame:SetRightOffset(95)
+
+		local StatusLabel = New("TextLabel", {
+			Size = UDim2.new(0, 80, 0, 14),
+			Position = UDim2.new(1, -10, 0, 10),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			Text = Config.StatusText or (tostring(math.floor(Bar.Value * 100 + 0.5)) .. "%"),
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+			TextSize = 12,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			Parent = BarFrame.Frame,
+			ThemeTag = { TextColor3 = "Accent" },
+		})
+
+		local Track = New("Frame", {
+			Size = UDim2.new(1, -20, 0, 6),
+			Position = UDim2.new(0, 10, 1, -10),
+			AnchorPoint = Vector2.new(0, 1),
+			BackgroundTransparency = 0.65,
+			Parent = BarFrame.Frame,
+			ThemeTag = { BackgroundColor3 = "SliderRail" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		})
+
+		local Fill = New("Frame", {
+			Size = UDim2.fromScale(Bar.Value, 1),
+			BackgroundTransparency = 0,
+			Parent = Track,
+			ThemeTag = { BackgroundColor3 = "Accent" },
+		}, {
+			New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		})
+
+		local Spacer = New("Frame", {
+			Size = UDim2.new(1, 0, 0, 12),
+			BackgroundTransparency = 1,
+			LayoutOrder = 99,
+			Parent = BarFrame.LabelHolder,
+		})
+
+		function Bar:SetValue(ratio, label)
+			Bar.Value = math.clamp(tonumber(ratio) or 0, 0, 1)
+			TweenService:Create(Fill, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.fromScale(Bar.Value, 1),
+			}):Play()
+			StatusLabel.Text = (label ~= nil) and tostring(label) or (tostring(math.floor(Bar.Value * 100 + 0.5)) .. "%")
+		end
+
+		function Bar:SetProgress(current, total, label)
+			local ratio = (type(total) == "number" and total > 0) and ((tonumber(current) or 0) / total) or 0
+			local txt = (label ~= nil) and tostring(label) or (tostring(current or 0) .. "/" .. tostring(total or 0))
+			Bar:SetValue(ratio, txt)
+		end
+
+		Bar.SetTitle = BarFrame.SetTitle
+		Bar.SetDesc = BarFrame.SetDesc
+		Bar.Visible = BarFrame.Visible
+		Bar.SetVisible = BarFrame.SetVisible
+		Bar.Elements = BarFrame
+		Bar.Destroy = function() BarFrame:Destroy(); Library.Options[Idx] = nil end
+
+		Library.Options[Idx] = Bar
+		return Bar
+	end
+
+	return Element
+end)()
+ElementsTable.StatsGrid = (function()
+	local Element = {}
+	Element.__index = Element
+	Element.__type = "StatsGrid"
+
+	function Element:New(Idx, Config)
+		if type(Idx) == "table" then
+			Config = Idx
+			Idx = Config.Title or "StatsGrid"
+		end
+		Config = Config or {}
+		local cols = math.clamp(tonumber(Config.Columns) or 3, 1, 4)
+		local nextOrder = 1
+		if self.Container then
+			local count = (self.Container:GetAttribute("ElementOrderCount") or 0) + 1
+			pcall(function() self.Container:SetAttribute("ElementOrderCount", count) end)
+			nextOrder = count
+		end
+
+		local Root = New("Frame", {
+			Name = "StatsGrid",
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			LayoutOrder = nextOrder,
+			Parent = self.Container,
+		})
+
+		New("UIGridLayout", {
+			CellSize = UDim2.new(1 / cols, -5, 0, Config.TileHeight or 48),
+			CellPadding = UDim2.fromOffset(6, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Parent = Root,
+		})
+
+		local cards = {}
+		for i, item in ipairs(Config.Items or {}) do
+			local key = item.Key or item.Label or tostring(i)
+			local valLabel = New("TextLabel", {
+				Size = UDim2.new(1, -16, 0, 18),
+				Position = UDim2.new(0, 8, 0, 22),
+				BackgroundTransparency = 1,
+				Text = tostring(item.Value or "0"),
+				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
+				TextSize = 14,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				ThemeTag = { TextColor3 = "Text" },
+			})
+			local titleLabel = New("TextLabel", {
+				Size = UDim2.new(1, -16, 0, 14),
+				Position = UDim2.new(0, 8, 0, 6),
+				BackgroundTransparency = 1,
+				Text = tostring(item.Label or key),
+				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+				TextSize = 11,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				ThemeTag = { TextColor3 = "SubText" },
+			})
+			New("Frame", {
+				BackgroundTransparency = 0.89,
+				LayoutOrder = i,
+				Parent = Root,
+				ThemeTag = {
+					BackgroundColor3 = "Element",
+					BackgroundTransparency = "ElementTransparency",
+				},
+			}, {
+				New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+				New("UIStroke", {
+					Transparency = 0.5,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+					ThemeTag = { Color = "ElementBorder" },
+				}),
+				titleLabel,
+				valLabel,
+			})
+			cards[key] = valLabel
+		end
+
+		local Grid = {
+			Frame = Root,
+			Type = "StatsGrid",
+			SetStat = function(_, key, value)
+				if cards[key] then cards[key].Text = tostring(value) end
+			end,
+			SetStats = function(_, map)
+				if type(map) ~= "table" then return end
+				for k, v in pairs(map) do
+					if cards[k] then cards[k].Text = tostring(v) end
+				end
+			end,
+			SetVisible = function(_, v) Root.Visible = (v == true) end,
+			Visible = function(_, v) Root.Visible = (v == true) end,
+			Destroy = function() pcall(function() Root:Destroy() end); Library.Options[Idx] = nil end,
+		}
+
+		Library.Options[Idx] = Grid
+		return Grid
 	end
 
 	return Element
@@ -9299,7 +9971,62 @@ for _, ElementComponent in pairs(ElementsTable) do
 		ElementComponent.ScrollFrame = self.ScrollFrame
 		ElementComponent.Library = Library
 
-		return ElementComponent:New(Idx, Config)
+		local obj = ElementComponent:New(Idx, Config)
+		if type(obj) == "table" then
+			local elem = obj.Elements
+			if elem then
+				if not obj.SetVisible and elem.SetVisible then obj.SetVisible = function(_, v) elem:SetVisible(v) end end
+				if not obj.Visible and elem.Visible then obj.Visible = function(_, v) elem:Visible(v) end end
+				if not obj.SetDisabled and elem.SetDisabled then obj.SetDisabled = function(_, d, r) elem:SetDisabled(d, r) end end
+				if not obj.SetTooltip and elem.SetTooltip then obj.SetTooltip = function(_, t) elem:SetTooltip(t) end end
+			end
+
+			local cfg = (type(Config) == "table" and Config) or (type(Idx) == "table" and Idx)
+			if cfg then
+				if cfg.Default ~= nil and cfg.AllowRightClickReset ~= false and type(obj.SetValue) == "function" and elem and elem._SetResetCallback then
+					local defaultVal = cfg.Default
+					elem:_SetResetCallback(function()
+						obj:SetValue(defaultVal)
+					end)
+				end
+
+				if cfg.DependsOn ~= nil and type(obj.SetVisible) == "function" then
+					local dep = cfg.DependsOn
+					local targetElem, expectedVal, predFn
+					if type(dep) == "table" then
+						targetElem = dep.Element or (dep.Id and Library.Options[dep.Id])
+						expectedVal = dep.Value
+						if expectedVal == nil then expectedVal = true end
+						predFn = dep.Predicate or dep.Callback
+					elseif type(dep) == "function" then
+						predFn = dep
+					end
+
+					local function evalDep(val)
+						local show = true
+						if predFn then
+							local ok, res = pcall(predFn, val)
+							show = ok and (res == true)
+						elseif targetElem then
+							show = (val == expectedVal)
+						end
+						obj:SetVisible(show)
+					end
+
+					if targetElem and type(targetElem.OnChanged) == "function" then
+						local prevChanged = targetElem.Changed
+						targetElem.Changed = function(val)
+							if prevChanged then pcall(prevChanged, val) end
+							evalDep(val)
+						end
+						evalDep(targetElem.Value)
+					elseif predFn then
+						evalDep(nil)
+					end
+				end
+			end
+		end
+		return obj
 	end
     
     -- Alias for backwards compatibility with older Fluent branches
@@ -9981,6 +10708,33 @@ local SaveManager = {} do
 		return cleared
 	end
 	SaveManager.ClearAutoloadConfig = SaveManager.ResetAutoloadConfig
+
+	function SaveManager:SetAutoSave(enabled, delaySec, configName)
+		self.AutoSaveEnabled = (enabled == true)
+		self.AutoSaveDelay = tonumber(delaySec) or self.AutoSaveDelay or 1.5
+		self.AutoSaveConfigName = configName or self.AutoSaveConfigName or "autosave"
+		if self.AutoSaveEnabled and self.Library then
+			local mgr = self
+			local pendingTask = nil
+			self.Library._OnOptionChanged = function()
+				if not mgr.AutoSaveEnabled or mgr._LoadingConfig then return end
+				if pendingTask then pcall(task.cancel, pendingTask) end
+				pendingTask = task.delay(mgr.AutoSaveDelay, function()
+					pendingTask = nil
+					if mgr.AutoSaveEnabled and not mgr.Library.Unloaded then
+						local target = mgr.AutoSaveConfigName
+						local listOpt = mgr.Options and mgr.Options.SaveManager_ConfigList
+						if listOpt and listOpt.Value and listOpt.Value ~= "" then
+							target = listOpt.Value
+						end
+						pcall(function() mgr:Save(target) end)
+					end
+				end)
+			end
+		elseif self.Library and not self.AutoSaveEnabled then
+			self.Library._OnOptionChanged = nil
+		end
+	end
 	function SaveManager:BuildConfigSection(tab)
 
 
@@ -10158,6 +10912,15 @@ local SaveManager = {} do
 
 		end})
 		self.AutoloadButton = AutoloadButton
+		self.Ignore["SaveManager_AutoSave"] = true
+		section:AddToggle("SaveManager_AutoSave", {
+			Title = "Auto-save config",
+			Description = "Automatically saves changes after 1.5s",
+			Default = self.AutoSaveEnabled == true,
+			Callback = function(val)
+				self:SetAutoSave(val, 1.5)
+			end,
+		})
 		section:AddButton({Title = "Reset autoload config", Description = "Removes the autoload config", Callback = function()
 			if self.ResetAutoloadConfig then
 				self:ResetAutoloadConfig()
@@ -10596,7 +11359,19 @@ Library.CreateWindow = function(self, Config)
 	end
 
 	if Library.Window then
-		return Library.Window
+		pcall(function() Library:Destroy() end)
+		Library.Window = nil
+		Library.Unloaded = false
+	end
+
+	local genv = type(getgenv) == "function" and getgenv() or nil
+	if genv then
+		if type(genv.__FLUENTXY_CLEANUP) == "function" then
+			pcall(genv.__FLUENTXY_CLEANUP)
+		end
+		genv.__FLUENTXY_CLEANUP = function()
+			pcall(function() Library:Destroy() end)
+		end
 	end
 
 	Library.MinimizeKey = Config.MinimizeKey or Enum.KeyCode.LeftControl
@@ -10688,6 +11463,10 @@ Library.CreateWindow = function(self, Config)
 		MinButton = Config.MinButton,
 		MinimizeButton = Config.MinimizeButton,
 		Minimize = Config.Minimize,
+		LoadingScreen = Config.LoadingScreen,
+		LoadingTime = Config.LoadingTime,
+		ManualLoading = Config.ManualLoading,
+		LoadingStyle = Config.LoadingStyle,
 	})
 
 
@@ -11241,6 +12020,265 @@ function Library:CreateMinimizer(Config)
 
 end
 
+local function makeHudDraggable(frame, dragTarget)
+	local dragging, dragStart, startPos = false, nil, nil
+	Creator.AddSignal(dragTarget.InputBegan, function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			local conn
+			conn = input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+					pcall(function() conn:Disconnect() end)
+				end
+			end)
+		end
+	end)
+	Creator.AddSignal(UserInputService.InputChanged, function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+end
+
+function Library:CreateWatermark(Config)
+	Config = Config or {}
+	if self.Watermark and self.Watermark.Destroy then
+		pcall(function() self.Watermark:Destroy() end)
+	end
+
+	local title = Config.Title or "FluentXY"
+	local showFPS = (Config.ShowFPS ~= false)
+	local showPing = (Config.ShowPing ~= false)
+	local customSuffix = Config.Suffix
+
+	local label = New("TextLabel", {
+		AutomaticSize = Enum.AutomaticSize.XY,
+		BackgroundTransparency = 1,
+		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+		TextSize = 12,
+		Text = title,
+		ThemeTag = { TextColor3 = "Text" },
+	})
+
+	local accentBar = New("Frame", {
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.fromOffset(0, 0),
+		BorderSizePixel = 0,
+		ThemeTag = { BackgroundColor3 = "Accent" },
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(0, 2) }),
+	})
+
+	local holder = New("Frame", {
+		Name = "FluentWatermark",
+		Parent = GUI,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Position = Config.Position or UDim2.fromOffset(16, 16),
+		BackgroundTransparency = 0.14,
+		Visible = (Config.Visible ~= false),
+		ZIndex = 900000,
+		ThemeTag = { BackgroundColor3 = "AcrylicMain" },
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+		New("UIStroke", {
+			Thickness = 1,
+			Transparency = 0.35,
+			ThemeTag = { Color = "ElementBorder" },
+		}),
+		accentBar,
+		New("Frame", {
+			AutomaticSize = Enum.AutomaticSize.XY,
+			BackgroundTransparency = 1,
+		}, {
+			New("UIPadding", {
+				PaddingLeft = UDim.new(0, 10),
+				PaddingRight = UDim.new(0, 10),
+				PaddingTop = UDim.new(0, 7),
+				PaddingBottom = UDim.new(0, 6),
+			}),
+			label,
+		}),
+	})
+
+	if Config.Draggable ~= false then
+		makeHudDraggable(holder, holder)
+	end
+
+	local frameCount, accum = 0, 0
+	local lastFps = 60
+	local updateConn = Creator.AddSignal(RunService.Heartbeat, function(dt)
+		if not holder.Visible then return end
+		frameCount = frameCount + 1
+		accum = accum + (dt or 0.016)
+		if accum < 0.5 then return end
+		lastFps = math.floor((frameCount / accum) + 0.5)
+		frameCount = 0
+		accum = 0
+
+		local parts = { title }
+		if showFPS then table.insert(parts, tostring(lastFps) .. " FPS") end
+		if showPing then
+			local pingMs = 0
+			pcall(function()
+				pingMs = math.floor((game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) + 0.5)
+			end)
+			table.insert(parts, tostring(pingMs) .. " ms")
+		end
+		if customSuffix and customSuffix ~= "" then
+			table.insert(parts, tostring(customSuffix))
+		end
+		label.Text = table.concat(parts, "  |  ")
+	end)
+
+	local wm = {
+		Frame = holder,
+		SetVisible = function(_, v) holder.Visible = (v == true) end,
+		SetText = function(_, t) title = tostring(t or ""); label.Text = title end,
+		SetSuffix = function(_, s) customSuffix = s end,
+		Destroy = function()
+			pcall(function() updateConn:Disconnect() end)
+			pcall(function() holder:Destroy() end)
+			Library.Watermark = nil
+		end,
+	}
+	self.Watermark = wm
+	return wm
+end
+
+function Library:CreateKeybindList(Config)
+	Config = Config or {}
+	if self.KeybindList and self.KeybindList.Destroy then
+		pcall(function() self.KeybindList:Destroy() end)
+	end
+
+	local listContainer = New("Frame", {
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, 0, 0, 0),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+	}, {
+		New("UIListLayout", {
+			Padding = UDim.new(0, 4),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	local headerLabel = New("TextLabel", {
+		Size = UDim2.new(1, 0, 0, 16),
+		BackgroundTransparency = 1,
+		Text = Config.Title or "Keybinds",
+		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
+		TextSize = 12,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		LayoutOrder = 1,
+		ThemeTag = { TextColor3 = "Accent" },
+	})
+
+	local holder = New("Frame", {
+		Name = "FluentKeybindList",
+		Parent = GUI,
+		Size = UDim2.fromOffset(Config.Width or 185, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Position = Config.Position or UDim2.new(0, 16, 0.35, 0),
+		BackgroundTransparency = 0.14,
+		Visible = (Config.Visible ~= false),
+		ZIndex = 900000,
+		ThemeTag = { BackgroundColor3 = "AcrylicMain" },
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+		New("UIStroke", {
+			Thickness = 1,
+			Transparency = 0.35,
+			ThemeTag = { Color = "ElementBorder" },
+		}),
+		New("UIPadding", {
+			PaddingLeft = UDim.new(0, 10),
+			PaddingRight = UDim.new(0, 10),
+			PaddingTop = UDim.new(0, 8),
+			PaddingBottom = UDim.new(0, 8),
+		}),
+		New("UIListLayout", {
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		headerLabel,
+		listContainer,
+	})
+
+	if Config.Draggable ~= false then
+		makeHudDraggable(holder, holder)
+	end
+
+	local function refreshList()
+		for _, ch in ipairs(listContainer:GetChildren()) do
+			if not ch:IsA("UIListLayout") then
+				pcall(function() ch:Destroy() end)
+			end
+		end
+		local count = 0
+		for id, opt in pairs(Library.Options or {}) do
+			if type(opt) == "table" and opt.Type == "Keybind" then
+				count = count + 1
+				local active = false
+				pcall(function() active = opt:GetState() == true end)
+				local nameText = (opt.Elements and opt.Elements.GetTitle and opt.Elements:GetTitle()) or tostring(id)
+				New("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 15),
+					BackgroundTransparency = 1,
+					Text = string.format("[%s] %s", tostring(opt.Value or "None"), nameText),
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", active and Enum.FontWeight.Medium or Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+					TextSize = 11,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					LayoutOrder = count,
+					Parent = listContainer,
+					ThemeTag = { TextColor3 = active and "Accent" or "SubText" },
+				})
+			end
+		end
+		if count == 0 then
+			New("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 15),
+				BackgroundTransparency = 1,
+				Text = "No active keybinds",
+				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+				TextSize = 11,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = listContainer,
+				ThemeTag = { TextColor3 = "SubText" },
+			})
+		end
+	end
+
+	local timer = 0
+	local updateConn = Creator.AddSignal(RunService.Heartbeat, function(dt)
+		if not holder.Visible then return end
+		timer = timer + (dt or 0.016)
+		if timer >= 0.2 then
+			timer = 0
+			refreshList()
+		end
+	end)
+	refreshList()
+
+	local kl = {
+		Frame = holder,
+		Refresh = refreshList,
+		SetVisible = function(_, v) holder.Visible = (v == true); if holder.Visible then refreshList() end end,
+		Destroy = function()
+			pcall(function() updateConn:Disconnect() end)
+			pcall(function() holder:Destroy() end)
+			Library.KeybindList = nil
+		end,
+	}
+	self.KeybindList = kl
+	return kl
+end
+
 
 
 
@@ -11327,6 +12365,17 @@ function Library:Destroy()
 			end
 		end)
 		Library.Minimizer = nil
+	end
+	if Library.Watermark and Library.Watermark.Destroy then
+		pcall(function() Library.Watermark:Destroy() end)
+	end
+	if Library.KeybindList and Library.KeybindList.Destroy then
+		pcall(function() Library.KeybindList:Destroy() end)
+	end
+	if Library._TooltipFrame then
+		pcall(function() Library._TooltipFrame:Destroy() end)
+		Library._TooltipFrame = nil
+		Library._TooltipLabel = nil
 	end
 
 	Creator.Disconnect()
